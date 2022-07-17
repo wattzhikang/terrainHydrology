@@ -37,27 +37,48 @@ def writeDataModel(path: str, edgeLength: float, shore: DataModel.ShoreModel, hy
 
         sectionSize = 0
 
-        file.write(struct.pack('!Q', shore.rasterShape[0]))
-        file.write(struct.pack('!Q', shore.rasterShape[1]))
-        for d0 in range(shore.rasterShape[0]):
-            for d1 in range(shore.rasterShape[1]):
-                file.write(struct.pack('!B', shore.imgray[d0][d1]))
+        if isinstance(shore, DataModel.ShoreModelImage):
+            file.write(struct.pack('!B', 0)) # Indicate that the shore was created from an image and not a shapefile
+            sectionSize += struct.calcsize('!B')
 
-        sectionSize = struct.calcsize('!Q')*2 + struct.calcsize('!B')*shore.rasterShape[0] * shore.rasterShape[1]
-        print(f"\tshore.imgray: {sectionSize} bytes")
-        tableOfContents['hydrology'] += sectionSize
+            # write the imgray raster shape
+            file.write(struct.pack('!Q', shore.rasterShape[0]))
+            file.write(struct.pack('!Q', shore.rasterShape[1]))
+            # write the imgray raster
+            for d0 in range(shore.rasterShape[0]):
+                for d1 in range(shore.rasterShape[1]):
+                    file.write(struct.pack('!B', shore.imgray[d0][d1]))
 
-        sectionSize = 0
+            sectionSize += struct.calcsize('!Q')*2 + struct.calcsize('!B')*shore.rasterShape[0] * shore.rasterShape[1]
+            print(f"\tshore.imgray: {sectionSize} bytes")
+            tableOfContents['hydrology'] += sectionSize
 
-        # write the shore contour
-        file.write(struct.pack('!Q', len(shore.contour)))
-        for point in shore.contour:
-            file.write(struct.pack('!Q', point[0]))
-            file.write(struct.pack('!Q', point[1]))
+            sectionSize = 0
 
-        sectionSize = struct.calcsize('!Q') + struct.calcsize('!Q') * 2 * len(shore.contour)
-        print(f"\tShore contour: {sectionSize} bytes")
-        tableOfContents['hydrology'] += sectionSize
+            # write the shore contour
+            file.write(struct.pack('!Q', len(shore.contour)))
+            for point in shore.contour:
+                file.write(struct.pack('!Q', point[0]))
+                file.write(struct.pack('!Q', point[1]))
+
+            sectionSize = struct.calcsize('!Q') + struct.calcsize('!Q') * 2 * len(shore.contour)
+            print(f"\tShore contour: {sectionSize} bytes")
+            tableOfContents['hydrology'] += sectionSize
+        else:
+            file.write(struct.pack('!B', 1)) # Indicate that the shore was created from a shapefile and not an image
+            sectionSize += struct.calcsize('!B')
+
+            # write the shore contour
+            file.write(struct.pack('!Q', len(shore.contour)))
+            sectionSize += struct.calcsize('!Q')
+            for point in shore.contour:
+                file.write(struct.pack('!f', point[0]))
+                file.write(struct.pack('!f', point[1]))
+
+                sectionSize += struct.calcsize('!f') * 2
+
+            print(f"\tShore contour: {sectionSize} bytes")
+            tableOfContents['hydrology'] += sectionSize
 
         ## Hydrology data structure ##
 

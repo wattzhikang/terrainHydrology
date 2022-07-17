@@ -12,10 +12,14 @@ import struct
 import math
 from tqdm import trange
 import datetime
+import shapefile
+import abc
 
 import typing
 
 import Math
+
+Point = typing.Tuple[float, float]
 
 def toImageCoordinates(loc: typing.Tuple[float,float], imgSize: typing.Tuple[float,float], resolution: float) -> typing.Tuple[float,float]:
     x = loc[0]
@@ -91,7 +95,35 @@ class RasterData:
                 binary = row
         return binary
 
-class ShoreModel:
+class ShoreModel(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def distanceToShore(self, loc: Point) -> float:
+        raise NotImplementedError
+    @abc.abstractmethod
+    def isOnLand(self, loc: Point) -> bool:
+        raise NotImplementedError
+    @abc.abstractmethod
+    def __getitem__(self, index: int):
+        """Gets a point on the shore by index
+
+        The shore can be thought of as an array of points. These points
+        demarcate the boundary between land and sea, and can be indexed
+
+        :param index: The index
+        :type index: int
+        :return: The index-th coordinate of the shoreline
+        :rtype: tuple of two floats, representing the coordinates in meters
+        """
+        raise NotImplementedError
+    def __len__(self):
+        """The number of points that make up the shore
+
+        :return: The number of points that make up the shore
+        :rtype: int
+        """
+        return len(self.contour)
+
+class ShoreModelImage(ShoreModel):
     """This class represents the land area.
     
     It is indexable as an array of points. These points
@@ -109,20 +141,19 @@ class ShoreModel:
     .. note::
        Shape variables are all in order y,x.
     """
-    def __init__(self, resolution: float, gammaFileName: str=None, binaryFile: typing.IO=None):
+    def __init__(self, resolution: float, gammaFileName: str=None, binaryFile: typing.IO=None) -> None:
         """Constructor
         """
-
-        if gammaFileName is not None:
-            self._initFromGammaImage(resolution, gammaFileName)
-        elif binaryFile is not None:
-            self._initFromBinaryFile(resolution, binaryFile)
+        if gammaFileName is not None and binaryFile is None:
+            self._initFromGamma(resolution, gammaFileName)
+        elif binaryFile is not None and gammaFileName is None:
+            self._initFromBinary(binaryFile)
         else:
-            raise ValueError('You must either create a shore from an image, or reconstitute it from a binary file')
-    def _initFromGammaImage(self, resolution, inputFileName):
+            raise ValueError('You must provide appropriate arguments')
+    def _initFromGamma(self, resolution: float, gammaFileName: str) -> None:
         self.resolution = resolution
 
-        self.img = cv.imread(inputFileName)
+        self.img = cv.imread(gammaFileName)
         
         self.imgray = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY) # a black-and-white version of the input image
         self.rasterShape = self.imgray.shape
@@ -142,25 +173,25 @@ class ShoreModel:
         
         # TODO raise exception if dimensions not square
         # TODO raise exception if multiple contours
-    def _initFromBinaryFile(self, resolution, binaryFileName):
+    def _initFromBinary(self, resolution: float, binaryFile: typing.IO):
         self.resolution = resolution
         self.rasterShape = (
-            struct.unpack('!Q', binaryFileName.read(struct.calcsize('!Q')))[0],
-            struct.unpack('!Q', binaryFileName.read(struct.calcsize('!Q')))[0]
+            struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0],
+            struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0]
         )
         self.imgray = np.zeros(self.rasterShape)
         for d0 in range(self.rasterShape[0]):
             for d1 in range(self.rasterShape[1]):
-                self.imgray[d0][d1] = struct.unpack('!B', binaryFileName.read(struct.calcsize('!B')))[0]
+                self.imgray[d0][d1] = struct.unpack('!B', binaryFile.read(struct.calcsize('!B')))[0]
         self.realShape = (self.imgray.shape[0] * self.resolution, self.imgray.shape[1] * self.resolution)
-        contourLength = struct.unpack('!Q', binaryFileName.read(struct.calcsize('!Q')))[0]
+        contourLength = struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0]
         self.contour = [ ]
         for i in range(contourLength):
             self.contour.append((
-                struct.unpack('!Q', binaryFileName.read(struct.calcsize('!Q')))[0],
-                struct.unpack('!Q', binaryFileName.read(struct.calcsize('!Q')))[0]
+                struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0],
+                struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0]
             ))
-    def distanceToShore(self, loc) -> float:
+    def distanceToShore(self, loc: Point) -> float:
         """Gets the distance between a point and the shore
 
         The distance is in meters.
@@ -174,7 +205,7 @@ class ShoreModel:
 
         #    for some reason this method is      y, x
         return cv.pointPolygonTest(self.contour,(loc[1],loc[0]),True) * self.resolution
-    def isOnLand(self, loc) -> bool:
+    def isOnLand(self, loc: Point) -> bool:
         """Determines whether or not a point is on land or not
 
         :param loc: The location to test
@@ -199,18 +230,40 @@ class ShoreModel:
         :return: The index-th coordinate of the shoreline
         :rtype: tuple of two floats, representing the coordinates in meters
         """
-
         # TODO ensure that points returned are x,y
-        # return (self.contour[index][1]*self.resolution,self.contour[index][0]*self.resolution)
 
         return fromImageCoordinates((self.contour[index][1],self.contour[index][0]), self.imgray.shape, self.resolution)
-    def __len__(self):
-        """The number of points that make up the shore
 
-        :return: The number of points that make up the shore
-        :rtype: int
-        """
-        return len(self.contour)
+class ShoreModelShapefile(ShoreModel):
+    def __init__(self, inputFileName: str=None, binaryFile: typing.IO=None) -> None:
+        if inputFileName is not None and binaryFile is None:
+            self._initFromFile(inputFileName)
+        elif binaryFile is not None and inputFileName is None:
+            self._initFromBinary(binaryFile)
+    def _initFromFile(self, inputFileName: str) -> None:
+        with shapefile.Reader(inputFileName, shapeType=5) as shp:
+            self.contour = [ ]
+            for point in shp.shape(0).points:
+                self.contour.append(
+                    point[0],
+                    point[1]
+                )
+    def _initFromBinary(self, binary: typing.IO) -> None:
+        contourLength = struct.unpack('!Q', binary.read(struct.calcsize('!Q')))[0]
+        self.contour = [ ]
+        for i in range(contourLength):
+            self.contour.append((
+                struct.unpack('!f', binary.read(struct.calcsize('!f')))[0],
+                struct.unpack('!f', binary.read(struct.calcsize('!f')))[0]
+            ))
+        pass
+    def distanceToShore(self, loc: Point) -> bool:
+        #    for some reason this method is       y, x
+        return cv.pointPolygonTest(self.contour, (loc[1],loc[0]), True)
+    def isOnLand(self, loc: Point) -> bool:
+        return self.distanceToShore(loc) >= 0
+    def __getitem__(self, index: int):
+        return self.contour[index]
 
 class HydroPrimitive:
     """Represents a certain stretch of river

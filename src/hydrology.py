@@ -45,9 +45,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     '-g',
     '--gamma',
-    help='An outline of the shore. Should be a grayscale image (but that doesn\'t have to be the actual color model)',
+    help='An outline of the shore. Should be a grayscale image (but that doesn\'t have to be the actual color model) or an ESRI shapefile',
     dest='inputDomain',
-    metavar='gamma.png',
+    metavar='gamma.png / gamma.shp',
     required=True
 )
 parser.add_argument(
@@ -167,7 +167,10 @@ if args.accelerate:
 
 # Load input images
 
-shore = DataModel.ShoreModel(resolution, gammaFileName=inputDomain)
+if inputDomain[-4:] == '.shp':
+    shore = DataModel.ShoreModelShapefile(inputDomain)
+else:
+    shore = DataModel.ShoreModelImage(resolution, inputDomain)
 
 terrainSlope = DataModel.RasterData(inputTerrain, resolution)
 riverSlope = DataModel.RasterData(inputRiverSlope, resolution)

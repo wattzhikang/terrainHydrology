@@ -4,7 +4,7 @@ import math
 
 from tqdm import trange
 
-from DataModel import ShoreModel, TerrainHoneycomb, Q, HydrologyNetwork, RasterData
+from DataModel import ShoreModel, ShoreModelShapefile, TerrainHoneycomb, Q, HydrologyNetwork, RasterData
 
 def getRidgeElevation(q: Q, hydrology: HydrologyNetwork, terrainSlope: RasterData, terrainSlopeRate: float) -> float:
     """Computes the elevation of a ridge/crest
@@ -43,10 +43,10 @@ def initializeTerrainHoneycomb(shore: ShoreModel, hydrology: HydrologyNetwork, r
     points = [node.position for node in hydrology.allNodes()]
 
     # Add corners so that the entire area is covered
-    points.append((-shore.realShape[0],-shore.realShape[1]))
-    points.append((-shore.realShape[0],shore.realShape[1]))
-    points.append((shore.realShape[0],shore.realShape[1]))
-    points.append((shore.realShape[0],-shore.realShape[1]))
+    points.append((-shore.realShape[0],-shore.realShape[1])) # This will show up as node len(hydrology)+1
+    points.append((-shore.realShape[0],shore.realShape[1])) # This will show up as node len(hydrology)+2
+    points.append((shore.realShape[0],shore.realShape[1])) # This will show up as node len(hydrology)+3
+    points.append((shore.realShape[0],-shore.realShape[1])) # This will show up as node len(hydrology)+4
     
     vor = Voronoi(points,qhull_options='Qbb Qc Qz Qx')
 
@@ -168,3 +168,6 @@ def initializeTerrainHoneycomb(shore: ShoreModel, hydrology: HydrologyNetwork, r
     cells.cellsDownstreamRidges = cellsDownstreamRidges
 
     return cells
+
+def initializeTerrainHoneycombShapefile(shore: ShoreModelShapefile, hydrology: HydrologyNetwork, edgeLength: float) -> TerrainHoneycomb:
+    pass
