@@ -170,4 +170,42 @@ def initializeTerrainHoneycomb(shore: ShoreModel, hydrology: HydrologyNetwork, r
     return cells
 
 def initializeTerrainHoneycombShapefile(shore: ShoreModelShapefile, hydrology: HydrologyNetwork, edgeLength: float) -> TerrainHoneycomb:
-    pass
+    cells = TerrainHoneycomb()
+
+    points = [node.position for node in hydrology.allNodes()]
+
+    # Add corners so that the entire area is covered
+    points.append((-shore.realShape[0],-shore.realShape[1])) # This will show up as node len(hydrology)+1
+    points.append((-shore.realShape[0],shore.realShape[1])) # This will show up as node len(hydrology)+2
+    points.append((shore.realShape[0],shore.realShape[1])) # This will show up as node len(hydrology)+3
+    points.append((shore.realShape[0],-shore.realShape[1])) # This will show up as node len(hydrology)+4
+
+    vor = Voronoi(points,qhull_options='Qbb Qc Qz Qx')
+
+    # Parallel to points. This indicates which voronoi region the point
+    # is associated with. It is an index in vor.regions
+    point_region = list(vor.point_region)
+
+    # This is a list of lists. For each voronoi region, it is a list of
+    # all the voronoi vertices that bind the region. Each number is an
+    # index in vor.vertices
+    regions = vor.regions
+
+    # A list of coordinates, one for each voronoi vertex
+    vertices = vor.vertices
+
+    # This is just point_region, but for reverse lookup
+    region_point = {point_region[i]: i for i in range(len(point_region))}
+
+    num_regions = len(regions)
+    num_vertices = len(vertices)
+    num_ridges = len(vor.ridge_vertices)
+
+    # Set these attributes earlier than the others so that we can use id_vor_region() and vor_region_id()
+    cells.vertices = vertices
+    cells.regions = regions
+    cells.point_region = point_region
+
+    
+
+    return cells
