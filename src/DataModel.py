@@ -718,6 +718,21 @@ class Q:
         self.vorIndex = iv # the index of the voronoi vertex this represents in vor.vertices
         self.elevation = 0
 
+class Edge:
+    def __init__(self, Q0: Q, Q1: Q, hasRiver: bool, isShore: bool, shoreSegment: typing.Tuple[int, int]) -> None:
+        self.Q0 = Q0
+        self.Q1 = Q1
+        self.hasRiver = hasRiver
+        self.isShore = isShore
+        self.shoreSegment = shoreSegment
+    def __getitem__(self, index: int):
+        if index == 0:
+            return self.Q0
+        elif index == 1:
+            return self.Q1
+        else:
+            raise ValueError('There are only 2 Qs in an Edge')
+
 class TerrainHoneycomb:
     """This class partitions the land into cells around the river nodes
 

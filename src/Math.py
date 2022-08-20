@@ -3,6 +3,28 @@ import math
 
 import typing
 
+from DataModel import Point
+
+# Copied from GitHub user kylemcdonald in gist https://gist.github.com/kylemcdonald/6132fc1c29fd3767691442ba4bc84018
+# intersection between line(p1, p2) and line(p3, p4)
+def edgeIntersection(line0p0: Point, line0p1: Point, line1p0: Point, line1p1: Point) -> Point:
+  x0,y0 = line0p0
+  x1,y1 = line0p1
+  x2,y2 = line1p0
+  x3,y3 = line1p1
+  denom = (y3-y2)*(x1-x0) - (x3-x2)*(y1-y0)
+  if denom == 0: # parallel
+    return None
+  ua = ((x3-x2)*(y0-y2) - (y3-y2)*(x0-x2)) / denom
+  if ua < 0 or ua > 1: # out of range
+    return None
+  ub = ((x1-x0)*(y0-y2) - (y1-y0)*(x0-x2)) / denom
+  if ub < 0 or ub > 1: # out of range
+    return None
+  x = x0 + ua * (x1-x0)
+  y = y0 + ua * (y1-y0)
+  return (x,y)
+
 def pointInConvexPolygon(point: typing.Tuple[float,float], vertices: np.ndarray, pivotPoint: typing.Tuple[float,float]) -> bool:
   """Determine if a point is within a convex polygon
 
