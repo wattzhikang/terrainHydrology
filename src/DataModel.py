@@ -96,6 +96,11 @@ class RasterData:
         return binary
 
 class ShoreModel(metaclass=abc.ABCMeta):
+    def closestNPoints(self, loc: Point, n: int) -> typing.List[int]:
+        # ensure that the result is un-squeezed
+        n = n if n > 1 else [n]
+        distances, indices = self.pointTree.query(loc, k=n)
+        return indices
     @abc.abstractmethod
     def distanceToShore(self, loc: Point) -> float:
         raise NotImplementedError
@@ -167,6 +172,8 @@ class ShoreModelImage(ShoreModel):
         self.contour = contours[0]
         self.contour=self.contour.reshape(-1,2)
         self.contour=np.flip(self.contour,1)
+
+        self.pointTree = cKDTree(self.contour)
         
         self.imgOutline = self.img.copy()
         cv.drawContours(self.imgOutline, contours, -1, (0,255,0), 2)
@@ -191,6 +198,7 @@ class ShoreModelImage(ShoreModel):
                 struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0],
                 struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0]
             ))
+        self.pointTree = cKDTree(self.contour)
     def distanceToShore(self, loc: Point) -> float:
         """Gets the distance between a point and the shore
 
@@ -242,12 +250,9 @@ class ShoreModelShapefile(ShoreModel):
             self._initFromBinary(binaryFile)
     def _initFromFile(self, inputFileName: str) -> None:
         with shapefile.Reader(inputFileName, shapeType=5) as shp:
-            self.contour = [ ]
-            for point in shp.shape(0).points:
-                self.contour.append(
-                    point[0],
-                    point[1]
-                )
+            self.contour = shp.shape(0).points[1:] # the first and last points are identical, so remove them
+            self.contour.reverse() # pyshp stores shapes in clockwise order, but we want counterclockwise
+            self.pointTree = cKDTree(self.contour)
     def _initFromBinary(self, binary: typing.IO) -> None:
         contourLength = struct.unpack('!Q', binary.read(struct.calcsize('!Q')))[0]
         self.contour = [ ]
@@ -256,7 +261,7 @@ class ShoreModelShapefile(ShoreModel):
                 struct.unpack('!f', binary.read(struct.calcsize('!f')))[0],
                 struct.unpack('!f', binary.read(struct.calcsize('!f')))[0]
             ))
-        pass
+        self.pointTree = cKDTree(self.contour)
     def distanceToShore(self, loc: Point) -> bool:
         #    for some reason this method is       y, x
         return cv.pointPolygonTest(self.contour, (loc[1],loc[0]), True)

@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import Mock, MagicMock
 
+import shapefile
 from PIL import Image
 from PIL import ImageDraw
 from matplotlib.pyplot import draw
@@ -18,6 +19,36 @@ import TerrainHoneycombFunctions
 
 import testcodegenerator
 from testcodegenerator import RasterDataMock
+
+class ShapefileShoreTests(unittest.TestCase):
+    def setUp(self):
+        with shapefile.Writer('inputShape', shapeType=5) as shp:
+            #         0         1          2          3          4          5           6         7        8         (beginning)
+            shape = [ [0,-437], [35,-113], [67,-185], [95,-189], [70,-150], [135,-148], [157,44], [33,77], [-140,8], [0,-437] ]
+            shape.reverse() # pyshp expects shapes to be clockwise
+
+            shp.field('name', 'C')
+
+            shp.poly([ shape ])
+            shp.record('polygon0')
+
+    def test_closestNPoints(self):
+        shore = ShoreModelShapefile(inputFileName='inputShape')
+
+        closestIndices = shore.closestNPoints((80,-185), 1)
+
+        self.assertEquals(2, closestIndices[0])
+
+        closestIndices = shore.closestNPoints((80,-185), 2)
+
+        self.assertEqual(2, len(closestIndices))
+        self.assertEqual(2, closestIndices[0])
+        self.assertEqual(3, closestIndices[1])
+
+    def tearDown(self) -> None:
+        os.remove('inputShape.shp')
+        os.remove('inputShape.dbf')
+        os.remove('inputShape.shx')
 
 # class HydrologyFunctionTests(unittest.TestCase):
 #     def setUp(self):
