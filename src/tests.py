@@ -37,7 +37,7 @@ class ShapefileShoreTests(unittest.TestCase):
 
         closestIndices = shore.closestNPoints((80,-185), 1)
 
-        self.assertEquals(2, closestIndices[0])
+        self.assertEqual(2, closestIndices[0])
 
         closestIndices = shore.closestNPoints((80,-185), 2)
 
@@ -186,9 +186,7 @@ class HoneycombTests(unittest.TestCase):
         vor.ridge_vertices = ridge_vertices
         vor.vertices = vertices
 
-        node = Mock()
-        node.x = 5
-        node.y = -15
+        node = (5, -15)
         
         TerrainHoneycombFunctions.orderVertices(1, node, vor)
 
@@ -201,9 +199,7 @@ class HoneycombTests(unittest.TestCase):
         vor.ridge_vertices = ridge_vertices
         vor.vertices = vertices
 
-        node = Mock()
-        node.x = 5
-        node.y = -15
+        node = (5, -15)
         
         TerrainHoneycombFunctions.orderVertices(1, node, vor)
 
@@ -216,13 +212,112 @@ class HoneycombTests(unittest.TestCase):
         vor.ridge_vertices = ridge_vertices
         vor.vertices = vertices
 
-        node = Mock()
-        node.x = -28
-        node.y = -6
+        node = (-28,-6)
         
         TerrainHoneycombFunctions.orderVertices(20, node, vor)
 
         self.assertEqual(vor.ridge_vertices[20][0], 14)
+    def test_order_vertices3(self) -> None:
+        ridge_vertices = { 83: [16, 57], 93: [57, 52], 78: [52, 46], 40: [46, 23], 20: [23, 31], 32: [31, 16] }
+        vertices = { 16: [61.443429,-98.40846], 57: [81.16758,-127.24641], 52: [122.02123,-126.7665], 46: [140.51944,-97.614588], 23: [119.10888,-65.079382], 31: [83.812318,-63.929693] }
+
+        # I think this test is failing because Inkscape uses a left-handed coordinate system
+        # you should be able to fix it by making all the y values negative
+
+        vor = Mock()
+        vor.ridge_vertices = ridge_vertices
+        vor.vertices = vertices
+
+        node = (96.8, 102.8)
+        
+        TerrainHoneycombFunctions.orderVertices(78, node, vor)
+
+        self.assertEqual(vor.ridge_vertices[78][0], 52)
+
+    def test_order_edges0(self) -> None:
+        edgeIDs = [78,93,83,32,20,40]
+
+        nodeLoc = (96.8, 102.8)
+
+        vor = Mock()
+        ridge_vertices = { 83: [16, 57], 93: [57, 52], 78: [52, 46], 40: [46, 23], 20: [23, 31], 32: [31, 16] }
+        vor.ridge_vertices = ridge_vertices
+        # this shape is just a hexagon
+        vertices = { 16: [61.443429,-98.40846], 57: [81.16758,-127.24641], 52: [122.02123,-126.7665], 46: [140.51944,-97.614588], 23: [119.10888,-65.079382], 31: [83.812318,-63.929693] }
+        vor.vertices = vertices
+
+        shore = Mock()
+        shore.isOnLand.return_value = True
+
+        orderedEdges = TerrainHoneycombFunctions.orderEdges(edgeIDs, nodeLoc, vor, shore)
+
+        print(orderedEdges)
+        self.assertEqual(78, orderedEdges[0])
+        self.assertEqual(40, orderedEdges[1])
+        self.assertEqual(20, orderedEdges[2])
+        self.assertEqual(32, orderedEdges[3])
+        self.assertEqual(83, orderedEdges[4])
+        self.assertEqual(93, orderedEdges[5])
+
+    def test_findShoreSegment0(self) -> None:
+        mockShore = Mock()
+        mockShore.__getitem__ = Mock()
+        mockShore.__getitem__.side_effect = lambda index : [ [0,-437], [35,-113], [67,-185], [95,-189], [70,-150], [135,-148], [157,44], [33,77], [-140,8] ][index]
+        mockShore.__len__ = Mock()
+        mockShore.__len__.return_value = 9
+        mockShore.closestNPoints.return_value = [2, 3, 4, 5]
+
+        p0 = (80,-185)
+        p1 = (80,-200)
+        segment = TerrainHoneycombFunctions.findIntersectingShoreSegment(p0, p1, mockShore)
+
+        self.assertEqual(2, segment[0])
+        self.assertEqual(3, segment[1])
+    def test_findShoreSegment1(self) -> None:
+        mockShore = Mock()
+        mockShore.__getitem__ = Mock()
+        mockShore.__getitem__.side_effect = lambda index : [ [0,-437], [35,-113], [67,-185], [95,-189], [70,-150], [135,-148], [157,44], [33,77], [-140,8] ][index]
+        mockShore.__len__ = Mock()
+        mockShore.__len__.return_value = 9
+        mockShore.closestNPoints.return_value = [4, 2, 3, 1]
+
+        p0 = (67,-150)
+        p1 = (30,-160)
+        segment = TerrainHoneycombFunctions.findIntersectingShoreSegment(p0, p1, mockShore)
+
+        self.assertEqual(1, segment[0])
+        self.assertEqual(2, segment[1])
+    def test_findShoreSegment2(self) -> None:
+        mockShore = Mock()
+        mockShore.__getitem__ = Mock()
+        mockShore.__getitem__.side_effect = lambda index : [ [0,-437], [35,-113], [67,-185], [95,-189], [70,-150], [135,-148], [157,44], [33,77], [-140,8] ][index]
+        mockShore.__len__ = Mock()
+        mockShore.__len__.return_value = 9
+        mockShore.closestNPoints.side_effect = [ [4, 2, 3, 1], [4, 2, 3, 1, 5, 6, 7, 8, 0, 9, 9, 9, 9, 9, 9, 9] ]
+
+        p0 = (67,-150)
+        p1 = (0,100)
+        segment = TerrainHoneycombFunctions.findIntersectingShoreSegment(p0, p1, mockShore)
+
+        self.assertEqual(7, segment[0])
+        self.assertEqual(8, segment[1])
+
+    # def test_regularCell(self) -> None:
+    #     shore = Mock()
+
+    #     hydrology = Mock()
+
+    #     vor = Mock()
+
+    #     createdQs = { }
+
+    #     createdEdges = { }
+
+    #     cellEdges = [ ]
+    #     edgesLeft = [ ]
+
+    #     processedEdges = TerrainHoneycombFunctions.processRidge(edgesLeft, cellEdges, createdEdges, createdQs, vor, shore, hydrology)
+    #     pass
 
     def tearDown(self) -> None:
         # os.remove('imageFile.png')

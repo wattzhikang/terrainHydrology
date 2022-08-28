@@ -2,7 +2,7 @@ import typing
 
 import numpy as np
 from scipy.spatial import Voronoi
-import math
+import Math
 
 from tqdm import trange
 
@@ -199,45 +199,53 @@ def findIntersectingShoreSegment(p0: Point, p1: Point, shore: ShoreModel) -> typ
     while True:
         indexes: typing.List[int] = shore.closestNPoints(p0, 4**power)
         for index in indexes:
-            if Math.hasIntersection(shore[index], shore[index+1], p0, p1):
+            if index >= len(shore):
+                return None
+            if Math.edgeIntersection(shore[index], shore[index+1], p0, p1) is not None:
                 return (index, index + 1)
         power = power + 1
 
-def orderEdges(edgeIDs: typing.List[int], nodeLoc: typing.Tuple[float,float], vor: Voronoi, shore: ShoreModel) -> typing.List[int]:
+def orderEdges(edgesLeft: typing.List[int], nodeLoc: typing.Tuple[float,float], vor: Voronoi, shore: ShoreModel) -> typing.List[int]:
     # only the first ridge needs to be re-ordered. The others will be
     # chained along, so they will be in the right order
-    orderVertices(edgeIDs[0], nodeLoc, vor)
+    orderVertices(edgesLeft[0], nodeLoc, vor)
     # set the edges in order by chaining them together
-    edgesLeft: typing.List[int] = [ edgeIDs[0] ]
-    edgeIDs = edgeIDs[1:]
-    while len(edgesLeft) < len(edgeIDs):
+    orderedEdges: typing.List[int] = [ edgesLeft[0] ]
+    edgesLeft = edgesLeft[1:]
+    while len(edgesLeft) > 0:
         # find the other ridge that has this ridge's second vertex
-        for idx in range(len(edgeIDs)):
-            ridgeID: int = edgeIDs[idx]
-            if getVertexID0(ridgeID, vor) == getVertexID1(edgesLeft[-1], vor):
-                edgesLeft.append(ridgeID)
-                edgeIDs = edgeIDs[idx+1:idx+len(edgeIDs)]
+        nextEdgeIdx = None
+        for idx in range(len(edgesLeft)):
+            ridgeID: int = edgesLeft[idx]
+            # breakpoint()
+            if getVertexID1(orderedEdges[-1], vor) == getVertexID0(ridgeID, vor):
+                nextEdgeIdx = idx
                 break
-            elif getVertexID1(ridgeID, vor) == getVertexID1(edgesLeft[-1], vor):
+            elif getVertexID1(orderedEdges[-1], vor) == getVertexID1(ridgeID, vor):
                 swapVertices(ridgeID, vor)
-                edgesLeft.append(ridgeID)
-                edgeIDs = edgeIDs[idx+1:idx+len(edgeIDs)]
+                nextEdgeIdx = idx
                 break
-    edgeIDs = edgesLeft
+        if nextEdgeIdx is not None:
+            orderedEdges.append(edgesLeft[nextEdgeIdx])
+            edgesLeft = edgesLeft[:idx] + edgesLeft[idx+1:]
+        else:
+            # if there is no edge that links up with this one, then it is impossible to form a chain
+            # out of these edges
+            return None
     # shift the edges so that the list starts with an edge whose
     # counterclockwise-most vertex is on land
-    for idx in range(len(edgesLeft)):
-        ridgeID: int = edgesLeft[idx]
+    for idx in range(len(orderedEdges)):
+        ridgeID: int = orderedEdges[idx]
         if shore.isOnLand(getVertex0(ridgeID, vor)):
-            edgesLeft = edgesLeft[idx: idx+len(edgesLeft)]
+            orderedEdges = orderedEdges[idx: idx+len(orderedEdges)]
             break
-    return edgesLeft
+    return orderedEdges
 
 # this function ensures that ridge vertices are always in counterclockwise order relative to the node's location
-def orderVertices(ridgeID: int, node: HydroPrimitive, vor: Voronoi) -> None:
+def orderVertices(ridgeID: int, node: typing.Tuple[float, float], vor: Voronoi) -> None:
     vector0:    typing.List[float, float, float] = [getVertex0(ridgeID, vor)[0], getVertex0(ridgeID, vor)[1], 0.0]
     vector1:    typing.List[float, float, float] = [getVertex1(ridgeID, vor)[0], getVertex1(ridgeID, vor)[1], 0.0]
-    nodeVector: typing.List[float, float, float] = [node.x, node.y, 0.0]
+    nodeVector: typing.List[float, float, float] = [node[0], node[1], 0.0]
 
     vector0 = np.subtract(vector0, nodeVector)
     vector1 = np.subtract(vector1, nodeVector)
