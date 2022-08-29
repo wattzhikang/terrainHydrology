@@ -78,7 +78,7 @@ def processRidge(edgesLeft: typing.List[int], cellEdges: typing.List[Edge], crea
         newRidge: Edge = None
         # both land Edges and the Qs that they are made of are shared between cells. So we have to
         # check both kinds of objects to see if they have already been created before creating them
-        if edgesLeft[0] not in createdEdges:
+        if edgesLeft[0] in createdEdges:
             newRidge = createdEdges[edgesLeft[0]]
         else:
             Q0: Q = None
@@ -103,7 +103,7 @@ def processRidge(edgesLeft: typing.List[int], cellEdges: typing.List[Edge], crea
             createdEdges[edgesLeft[0]] = newRidge
         cellEdges.append(newRidge)
         edgesLeft = edgesLeft[1:]
-        return processRidge(edgesLeft, cellEdges, createdEdges, createdQs, vor, shore)
+        return processRidge(edgesLeft, cellEdges, createdEdges, createdQs, vor, shore, hydrology)
     else:
         # we know that the first vertex is on land, so if the second vertex
         # isn't, then we know that this edge must intersect the shore somewhere
@@ -189,8 +189,8 @@ def terminateShoreAndStartRidge(intersectingRidgeID: int, currentSegment: typing
     return processRidge(edgesLeft, cellEdges, createdEdges, createdQs, vor, shore)
 
 def hasRiver(ridgeID: int, vor: Voronoi, hydrology: HydrologyNetwork) -> bool:
-    node0: HydroPrimitive = hydrology.node(vor.ridge_points[ridgeID[0]])
-    node1: HydroPrimitive = hydrology.node(vor.ridge_points[ridgeID[1]])
+    node0: HydroPrimitive = hydrology.node(vor.ridge_points[ridgeID][0])
+    node1: HydroPrimitive = hydrology.node(vor.ridge_points[ridgeID][1])
     # a river runs through this ridge if the other node is this node's parent, or this node is the other node's parent
     return node0.parent == node1 or node1.parent == node0
 

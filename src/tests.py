@@ -1,6 +1,8 @@
 #! /bin/python
 
+from concurrent.futures import process
 import unittest
+from unittest import mock
 from unittest.mock import Mock, MagicMock
 
 import shapefile
@@ -228,7 +230,7 @@ class HoneycombTests(unittest.TestCase):
         vor.ridge_vertices = ridge_vertices
         vor.vertices = vertices
 
-        node = (96.8, 102.8)
+        node = (102.7, -97.7)
         
         TerrainHoneycombFunctions.orderVertices(78, node, vor)
 
@@ -237,13 +239,13 @@ class HoneycombTests(unittest.TestCase):
     def test_order_edges0(self) -> None:
         edgeIDs = [78,93,83,32,20,40]
 
-        nodeLoc = (96.8, 102.8)
+        nodeLoc = (102.7, -97.7)
 
         vor = Mock()
         ridge_vertices = { 83: [16, 57], 93: [57, 52], 78: [52, 46], 40: [46, 23], 20: [23, 31], 32: [31, 16] }
         vor.ridge_vertices = ridge_vertices
         # this shape is just a hexagon
-        vertices = { 16: [61.443429,-98.40846], 57: [81.16758,-127.24641], 52: [122.02123,-126.7665], 46: [140.51944,-97.614588], 23: [119.10888,-65.079382], 31: [83.812318,-63.929693] }
+        vertices = { 16: [61.4,-98.4], 57: [81.1,-127.2], 52: [122.0,-126.7], 46: [140.5,-97.6], 23: [119.1,-65.0], 31: [83.8,-63.9] }
         vor.vertices = vertices
 
         shore = Mock()
@@ -251,13 +253,112 @@ class HoneycombTests(unittest.TestCase):
 
         orderedEdges = TerrainHoneycombFunctions.orderEdges(edgeIDs, nodeLoc, vor, shore)
 
-        print(orderedEdges)
         self.assertEqual(78, orderedEdges[0])
         self.assertEqual(40, orderedEdges[1])
         self.assertEqual(20, orderedEdges[2])
         self.assertEqual(32, orderedEdges[3])
         self.assertEqual(83, orderedEdges[4])
         self.assertEqual(93, orderedEdges[5])
+
+    def test_hasRiver(self) -> None:
+        vor = Mock()
+        ridge_points = { 83: [64,4], 93: [64,6], 78: [64,65], 40: [64,20], 20: [64,13], 32: [64,95] }
+        vor.ridge_points = ridge_points
+
+        node4 = Mock()
+        node64 = Mock()
+        node64.parent = node4
+        node13 = Mock()
+        node13.parent = node64
+        node65 = Mock()
+        node65.parent = node64
+        node6 = Mock()
+        node95 = Mock()
+        node20 = Mock()
+        nodes = { 4: node4, 64: node64, 13: node13, 65: node65, 6: node6, 95: node95, 20: node20 }
+        hydrology = Mock()
+        hydrology.node.side_effect = lambda nodeID: nodes[nodeID]
+
+        self.assertTrue(TerrainHoneycombFunctions.hasRiver(83, vor, hydrology))
+        self.assertFalse(TerrainHoneycombFunctions.hasRiver(93, vor, hydrology))
+        self.assertTrue(TerrainHoneycombFunctions.hasRiver(78, vor, hydrology))
+        self.assertFalse(TerrainHoneycombFunctions.hasRiver(40, vor, hydrology))
+        self.assertTrue(TerrainHoneycombFunctions.hasRiver(20, vor, hydrology))
+        self.assertFalse(TerrainHoneycombFunctions.hasRiver(32, vor, hydrology))
+
+    def test_regularCell(self) -> None:
+        edgeIDs = [78,40,20,32,83,93]
+
+        nodeLoc = (102.7, -97.7)
+
+        vor = Mock()
+        ridge_points = { 83: [64,4], 93: [64,6], 78: [64,65], 40: [64,20], 20: [64,13], 32: [64,95] }
+        vor.ridge_points = ridge_points
+        ridge_vertices = { 83: [16, 57], 93: [57, 52], 78: [52, 46], 40: [46, 23], 20: [23, 31], 32: [31, 16] }
+        vor.ridge_vertices = ridge_vertices
+        # this shape is just a hexagon
+        vertices = { 16: [61.4,-98.4], 57: [81.1,-127.2], 52: [122.0,-126.7], 46: [140.5,-97.6], 23: [119.1,-65.0], 31: [83.8,-63.9] }
+        vor.vertices = vertices
+
+        node4 = Mock()
+        node64 = Mock()
+        node64.parent = node4
+        node13 = Mock()
+        node13.parent = node64
+        node65 = Mock()
+        node65.parent = node64
+        node6 = Mock()
+        node95 = Mock()
+        node20 = Mock()
+        nodes = { 4: node4, 64: node64, 13: node13, 65: node65, 6: node6, 95: node95, 20: node20 }
+        hydrology = Mock()
+        hydrology.node.side_effect = lambda nodeID: nodes[nodeID]
+
+        shore = Mock()
+        shore.isOnLand.return_value = True
+
+        createdEdges = { }
+        createdQs = { }
+
+        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, vor, shore, hydrology)
+
+        self.assertEqual(len(processedEdges), 6)
+        self.assertEqual(processedEdges[0].Q0.position, vor.vertices[52])
+        self.assertEqual(processedEdges[0].Q1, processedEdges[1].Q0)
+        self.assertTrue(processedEdges[0].hasRiver)
+        self.assertFalse(processedEdges[0].isShore)
+        self.assertIsNone(processedEdges[0].shoreSegment)
+
+        self.assertEqual(processedEdges[1].Q0.position, vor.vertices[46])
+        self.assertEqual(processedEdges[1].Q1, processedEdges[2].Q0)
+        self.assertFalse(processedEdges[1].hasRiver)
+        self.assertFalse(processedEdges[1].isShore)
+        self.assertIsNone(processedEdges[1].shoreSegment)
+
+        self.assertEqual(processedEdges[2].Q0.position, vor.vertices[23])
+        self.assertEqual(processedEdges[2].Q1, processedEdges[3].Q0)
+        self.assertTrue(processedEdges[2].hasRiver)
+        self.assertFalse(processedEdges[2].isShore)
+        self.assertIsNone(processedEdges[2].shoreSegment)
+
+        self.assertEqual(processedEdges[3].Q0.position, vor.vertices[31])
+        self.assertEqual(processedEdges[3].Q1, processedEdges[4].Q0)
+        self.assertFalse(processedEdges[3].hasRiver)
+        self.assertIsNone(processedEdges[3].shoreSegment)
+
+        self.assertFalse(processedEdges[4].isShore)
+        self.assertIsNone(processedEdges[4].shoreSegment)
+        self.assertEqual(processedEdges[4].Q0.position, vor.vertices[16])
+        self.assertEqual(processedEdges[4].Q1, processedEdges[5].Q0)
+        self.assertTrue(processedEdges[4].hasRiver)
+        self.assertIsNone(processedEdges[4].shoreSegment)
+
+        self.assertFalse(processedEdges[5].isShore)
+        self.assertEqual(processedEdges[5].Q0.position, vor.vertices[57])
+        self.assertEqual(processedEdges[5].Q1, processedEdges[0].Q0)
+        self.assertFalse(processedEdges[5].hasRiver)
+        self.assertFalse(processedEdges[5].isShore)
+        self.assertIsNone(processedEdges[5].shoreSegment)
 
     def test_findShoreSegment0(self) -> None:
         mockShore = Mock()
@@ -301,23 +402,6 @@ class HoneycombTests(unittest.TestCase):
 
         self.assertEqual(7, segment[0])
         self.assertEqual(8, segment[1])
-
-    # def test_regularCell(self) -> None:
-    #     shore = Mock()
-
-    #     hydrology = Mock()
-
-    #     vor = Mock()
-
-    #     createdQs = { }
-
-    #     createdEdges = { }
-
-    #     cellEdges = [ ]
-    #     edgesLeft = [ ]
-
-    #     processedEdges = TerrainHoneycombFunctions.processRidge(edgesLeft, cellEdges, createdEdges, createdQs, vor, shore, hydrology)
-    #     pass
 
     def tearDown(self) -> None:
         # os.remove('imageFile.png')

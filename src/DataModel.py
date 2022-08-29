@@ -717,14 +717,16 @@ class Q:
     :cvar elevation: The elevation of this point
     :vartype elevation: float
     """
-    def __init__(self, position, nodes, iv):
+    def __init__(self, position) -> None:
         self.position = position
-        self.nodes = nodes
-        self.vorIndex = iv # the index of the voronoi vertex this represents in vor.vertices
-        self.elevation = 0
+    # def __init__(self, position, nodes, iv):
+    #     self.position = position
+    #     self.nodes = nodes
+    #     self.vorIndex = iv # the index of the voronoi vertex this represents in vor.vertices
+    #     self.elevation = 0
 
 class Edge:
-    def __init__(self, Q0: Q, Q1: Q, hasRiver: bool, isShore: bool, shoreSegment: typing.Tuple[int, int]) -> None:
+    def __init__(self, Q0: Q, Q1: Q, hasRiver: bool, isShore: bool, shoreSegment: typing.Tuple[int, int]=None) -> None:
         self.Q0 = Q0
         self.Q1 = Q1
         self.hasRiver = hasRiver
