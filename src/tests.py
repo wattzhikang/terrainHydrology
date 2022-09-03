@@ -458,7 +458,117 @@ class HoneycombTests(unittest.TestCase):
         self.assertEqual(processedEdges[6].Q1, createdQs[23])
         self.assertEqual(processedEdges[7].Q1, createdQs[31])
 
-        pass
+    def test_coastCellWithEdgesCreated(self) -> None:
+        edgeIDs = [32,83,93,78,40,20]
+
+        nodeLoc = (102.7, -97.7)
+
+        vor = Mock()
+        ridge_points = { 83: [64,4], 93: [64,6], 78: [64,65], 40: [64,20], 20: [64,13], 32: [64,95] }
+        vor.ridge_points = ridge_points
+        ridge_vertices = { 83: [16, 57], 93: [57, 52], 78: [52, 46], 40: [46, 23], 20: [23, 31], 32: [31, 16] }
+        vor.ridge_vertices = ridge_vertices
+        # this shape is just a hexagon
+        vertices = { 16: [61.4,-98.4], 57: [81.1,-127.2], 52: [122.0,-126.7], 46: [140.5,-97.6], 23: [119.1,-65.0], 31: [83.8,-63.9] }
+        vor.vertices = vertices
+
+        node4 = Mock()
+        node64 = Mock()
+        node64.parent = node4
+        node13 = Mock()
+        node13.parent = node64
+        node65 = Mock()
+        node65.parent = node64
+        node6 = Mock()
+        node95 = Mock()
+        node20 = Mock()
+        nodes = { 4: node4, 64: node64, 13: node13, 65: node65, 6: node6, 95: node95, 20: node20 }
+        hydrology = Mock()
+        hydrology.node.side_effect = lambda nodeID: nodes[nodeID]
+
+        shore = Mock()
+        # isOnLandDict = { vertices[31]: True, vertices[16]: False, vertices[57]: False, vertices[52]: True, vertices[46]: True, vertices[23]: True }
+        shore.isOnLand.side_effect = lambda vertex : not vertex == vertices[16] and not vertex == vertices[57]
+        shorePoints = { 18: (96.3,-181.2), 17: (107.2,-102.4), 16: (93.4,-88.0), 15: (22.1,-56.4) }
+        shore.__getitem__ = Mock()
+        shore.__getitem__.side_effect = lambda shoreIdx : shorePoints[shoreIdx]
+        shore.__len__ = Mock(return_value=420)
+        shore.closestNPoints.return_value = [ 15, 16, 17, 18 ]
+
+        q52 = Q(vertices[52])
+        q23 = Q(vertices[23])
+        q31 = Q(vertices[31])
+        createdQs = {
+            52: q52,
+            23: q23,
+            31: q31
+        }
+        # declare these separately to test whether or not the function overwrites them
+        # in the dictionary
+        edge93 = Edge(Q((103.9,-127.1)), createdQs[52], hasRiver=False, isShore=False, shoreSegment=(17,18))
+        edge20 = Edge(createdQs[23], createdQs[31], hasRiver=False, isShore=False)
+        createdEdges = {
+            93: edge93,
+            20: edge20
+        }
+
+        intersection: Point = Math.edgeIntersection(
+            TerrainHoneycombFunctions.getVertex0(32, vor),
+            TerrainHoneycombFunctions.getVertex1(32, vor),
+            shore[15],
+            shore[16]
+        )
+        self.assertAlmostEqual(intersection[0], 74.11, delta=1.0)
+        self.assertAlmostEqual(intersection[1], -79.72, delta=1.0)
+
+        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, vor, shore, hydrology)
+
+        self.assertEqual(len(processedEdges),8)
+
+        self.assertEqual(processedEdges[0].Q0.position, vertices[31])
+        self.assertAlmostEqual(processedEdges[0].Q1.position[0], 74.3, delta=1.0)
+        self.assertAlmostEqual(processedEdges[0].Q1.position[1], -79.9, delta=1.0)
+
+        self.assertEqual(processedEdges[1].Q0, processedEdges[0].Q1)
+        self.assertEqual(processedEdges[1].Q1.position, shore[16])
+
+        self.assertEqual(processedEdges[2].Q0, processedEdges[1].Q1)
+        self.assertEqual(processedEdges[2].Q1.position, shore[17])
+
+        self.assertEqual(processedEdges[3].Q0, processedEdges[2].Q1)
+        self.assertAlmostEqual(processedEdges[3].Q1.position[0], 103.9, delta=1.0)
+        self.assertAlmostEqual(processedEdges[3].Q1.position[1], -127.1, delta=1.0)
+
+        self.assertEqual(processedEdges[4].Q0, processedEdges[3].Q1)
+        self.assertEqual(processedEdges[4].Q1.position, vertices[52])
+
+        self.assertEqual(processedEdges[5].Q0, processedEdges[4].Q1)
+        self.assertEqual(processedEdges[5].Q1.position, vertices[46])
+
+        self.assertEqual(processedEdges[6].Q0, processedEdges[5].Q1)
+        self.assertEqual(processedEdges[6].Q1.position, vertices[23])
+
+        self.assertEqual(processedEdges[7].Q0, processedEdges[6].Q1)
+        self.assertEqual(processedEdges[7].Q1.position, vertices[31])
+
+        self.assertEqual(processedEdges[0], createdEdges[32])
+        self.assertEqual(processedEdges[4], createdEdges[93])
+        self.assertEqual(processedEdges[5], createdEdges[78])
+        self.assertEqual(processedEdges[6], createdEdges[40])
+        self.assertEqual(processedEdges[7], createdEdges[20])
+
+        self.assertEqual(processedEdges[0].Q0, createdQs[31])
+        self.assertEqual(processedEdges[4].Q1, createdQs[52])
+        self.assertEqual(processedEdges[5].Q1, createdQs[46])
+        self.assertEqual(processedEdges[6].Q1, createdQs[23])
+        self.assertEqual(processedEdges[7].Q1, createdQs[31])
+
+        self.assertEqual(createdEdges[93], edge93)
+        self.assertEqual(createdEdges[20], edge20)
+
+        self.assertEqual(createdQs[52], q52)
+        self.assertEqual(createdQs[23], q23)
+        self.assertEqual(createdQs[31], q31)
 
     def test_findShoreSegment0(self) -> None:
         mockShore = Mock()

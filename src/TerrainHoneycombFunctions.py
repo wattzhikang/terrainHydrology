@@ -173,11 +173,14 @@ def processShoreSegment(currentSegment: typing.Tuple[int, int], edgesLeft: typin
 # start the next one.
 # Processes: the terminated shore segment
 def terminateShoreAndStartRidge(intersectingRidgeID: int, currentSegment: typing.Tuple[int, int], edgesLeft: typing.List[int], cellEdges: typing.List[Edge], createdEdges: typing.Dict[int, Edge], createdQs: typing.Dict[int, Q], vor: Voronoi, shore: ShoreModel, hydrology: HydrologyNetwork) -> typing.List[Edge]:
-    #TODO This ridge might have already been processed somewhere else. factor this in
-    intersection: typing.Tuple[float, float] = Math.edgeIntersection(getVertex0(intersectingRidgeID, vor), getVertex1(intersectingRidgeID, vor), shore[currentSegment[0]], shore[currentSegment[1]])
-
     Q0: Q = cellEdges[-1][1]
-    Q1: Q = Q(intersection)
+    Q1: Q = None
+    # if the intersecting ridge has already been created, then all we need to do is meet it
+    if intersectingRidgeID in createdEdges:
+        Q1 = createdEdges[intersectingRidgeID].Q0
+    else:
+        intersection: typing.Tuple[float, float] = Math.edgeIntersection(getVertex0(intersectingRidgeID, vor), getVertex1(intersectingRidgeID, vor), shore[currentSegment[0]], shore[currentSegment[1]])
+        Q1: Q = Q(intersection)
 
     newEdge: Edge = Edge(Q0, Q1, hasRiver=False, isShore=True, shoreSegment=currentSegment)
     createdEdges[edgesLeft[0]] = newEdge
