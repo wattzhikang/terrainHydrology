@@ -244,6 +244,31 @@ def orderEdges(edgesLeft: typing.List[int], nodeLoc: typing.Tuple[float,float], 
             break
     return orderedEdges
 
+def orderCreatedEdges(edgesLeft: typing.List[int], vor: Voronoi, createdEdges: typing.Dict[int, Edge]) -> None:
+    for edgeID in edgesLeft:
+        if edgeID not in createdEdges:
+            continue
+        edge = createdEdges[edgeID]
+        # we want the first Q to match the first vertex
+        # one of these situations must be true
+        # 1) first vertex matches first Q
+        # 2) first vertex matches second Q
+        #    (first vertex must not be on land)
+        # 3) second vertex matches first Q
+        # 4) second vertex matches second Q
+        if edge[0].position == getVertex0(edgeID, vor):
+            continue
+        elif edge[0].position == getVertex1(edgeID, vor):
+            swap: Q = edge.Q0
+            edge.Q0 = edge.Q1
+            edge.Q1 = swap
+        elif edge[1].position == getVertex0(edgeID, vor):
+            swap: Q = edge.Q0
+            edge.Q0 = edge.Q1
+            edge.Q1 = swap
+        else: # edge[1].position == getVertex1(edgeID, vor):
+            continue
+
 # this function ensures that ridge vertices are always in counterclockwise order relative to the node's location
 def orderVertices(ridgeID: int, node: typing.Tuple[float, float], vor: Voronoi) -> None:
     vector0:    typing.List[float, float, float] = [getVertex0(ridgeID, vor)[0], getVertex0(ridgeID, vor)[1], 0.0]

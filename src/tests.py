@@ -266,6 +266,49 @@ class HoneycombTests(unittest.TestCase):
         self.assertEqual(32, orderedEdges[3])
         self.assertEqual(83, orderedEdges[4])
         self.assertEqual(93, orderedEdges[5])
+    def test_orderCreatedEdges0(self) -> None:
+        edgeIDs = [32,83,93,78,40,20]
+
+        nodeLoc = (102.7, -97.7)
+
+        vor = Mock()
+        ridge_vertices = { 83: [16, 57], 93: [57, 52], 78: [52, 46], 40: [46, 23], 20: [23, 31], 32: [31, 16] }
+        vor.ridge_vertices = ridge_vertices
+        # this shape is just a hexagon
+        vertices = { 16: [61.4,-98.4], 57: [81.1,-127.2], 52: [122.0,-126.7], 46: [140.5,-97.6], 23: [119.1,-65.0], 31: [83.8,-63.9] }
+        vor.vertices = vertices
+
+        shore = Mock()
+        # isOnLandDict = { vertices[31]: True, vertices[16]: False, vertices[57]: False, vertices[52]: True, vertices[46]: True, vertices[23]: True }
+        shore.isOnLand.side_effect = lambda vertex : not vertex == vertices[16] and not vertex == vertices[57]
+        shorePoints = { 15: (56.1,-49.1), 16: (130.3,-173.9) }
+        shore.__getitem__ = Mock()
+        shore.__getitem__.side_effect = lambda shoreIdx : shorePoints[shoreIdx]
+        # shore.__len__ = Mock(return_value=420)
+        # shore.closestNPoints.return_value = [ 15, 16 ] # This is technically wrong, but it's fine
+
+
+        q52 = Q(vertices[52])
+        q23 = Q(vertices[23])
+        q31 = Q(vertices[31])
+        createdQs = {
+            52: q52,
+            23: q23,
+            31: q31
+        }
+        edge93 = Edge(createdQs[52], Q((102.6,-127.5)), hasRiver=False, isShore=False, shoreSegment=(17,18))
+        edge20 = Edge(createdQs[31], createdQs[23], hasRiver=False, isShore=False)
+        createdEdges = {
+            93: edge93,
+            20: edge20
+        }
+
+        TerrainHoneycombFunctions.orderCreatedEdges(edgeIDs, vor, createdEdges)
+        
+        self.assertEqual(edge93.Q0.position, (102.6,-127.5))
+        self.assertEqual(edge93.Q1, q52)
+        self.assertEqual(edge20.Q0, q23)
+        self.assertEqual(edge20.Q1, q31)
 
     def test_hasRiver(self) -> None:
         vor = Mock()
@@ -366,7 +409,6 @@ class HoneycombTests(unittest.TestCase):
         self.assertFalse(processedEdges[5].hasRiver)
         self.assertFalse(processedEdges[5].isShore)
         self.assertIsNone(processedEdges[5].shoreSegment)
-
     def test_coastCell(self) -> None:
         edgeIDs = [32,83,93,78,40,20]
 
@@ -652,6 +694,10 @@ class HoneycombTests(unittest.TestCase):
         self.assertEqual(processedEdges[3].Q1, createdQs[46])
         self.assertEqual(processedEdges[4].Q1, createdQs[23])
         self.assertEqual(processedEdges[5].Q1, createdQs[31])
+
+    def test_many_cells(self) -> None:
+        edgeLength, shore, hydrology, cells = testcodegenerator.getPredefinedObjects0()
+        pass
 
     def test_findShoreSegment0(self) -> None:
         mockShore = Mock()
