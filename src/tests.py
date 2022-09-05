@@ -696,8 +696,117 @@ class HoneycombTests(unittest.TestCase):
         self.assertEqual(processedEdges[5].Q1, createdQs[31])
 
     def test_many_cells(self) -> None:
-        edgeLength, shore, hydrology, cells = testcodegenerator.getPredefinedObjects0()
-        pass
+        # edgeLength, shore, hydrology, cells = testcodegenerator.getPredefinedObjects0()
+
+        with shapefile.Writer('inputShape', shapeType=5) as shp:
+            #         0           1         2             3             4          5          (beginning)
+            shape = [(100, 132), (200, 0), (100, -172), (-100, -172), (-200, 0), (-100, 132), (100, 132)]
+            shape.reverse() # pyshp expects shapes to be clockwise
+
+            shp.field('name', 'C')
+
+            shp.poly([ shape ])
+            shp.record('polygon0')
+        shore = ShoreModelShapefile(inputFileName='inputShape')
+        os.remove('inputShape.shp')
+        os.remove('inputShape.dbf')
+        os.remove('inputShape.shx')
+
+        hydrology = HydrologyNetwork()
+
+        hydrology.addNode((-7768.799999999999, 2059.2), 0, 2, contourIndex=44) # ID: 0
+        hydrology.addNode((-8049.599999999999, -2246.3999999999996), 0, 1, contourIndex=90) # ID: 1
+        hydrology.addNode((-5054.4, -7394.4), 0, 1, contourIndex=145) # ID: 2
+        hydrology.addNode((1123.1999999999998, -8049.599999999999), 0, 1, contourIndex=214) # ID: 3
+        hydrology.addNode((4305.599999999999, -8049.599999999999), 0, 1, contourIndex=248) # ID: 4
+        hydrology.addNode((6458.4, -5054.4), 0, 1, contourIndex=284) # ID: 5
+        hydrology.addNode((8049.599999999999, 1684.8), 0, 1, contourIndex=356) # ID: 6
+        hydrology.addNode((6832.799999999999, 3369.6), 0, 1, contourIndex=374) # ID: 7
+        hydrology.addNode((280.79999999999995, 6177.599999999999), 0, 2, contourIndex=451) # ID: 8
+        hydrology.addNode((-4867.2, 5990.4), 0, 1, contourIndex=2) # ID: 9
+        hydrology.addNode((-6246.780372888135, 307.5788923724788), 173.81, 2, parent=hydrology.node(0)) # ID: 10
+        hydrology.addNode((-5449.5362946522855, 2134.9371444985295), 173.81, 1, parent=hydrology.node(0)) # ID: 11
+        hydrology.addNode((-5738.2285044404125, -2452.02601857411), 173.81, 1, parent=hydrology.node(1)) # ID: 12
+        hydrology.addNode((-3779.8747892700185, -5455.249222671507), 173.81, 1, parent=hydrology.node(2)) # ID: 13
+        hydrology.addNode((1735.4047436340666, -5811.313690817918), 173.81, 1, parent=hydrology.node(3)) # ID: 14
+        hydrology.addNode((3913.3561082532797, -5762.491568073916), 173.81, 1, parent=hydrology.node(4)) # ID: 15
+        hydrology.addNode((4575.801759157646, -3697.733455274554), 173.81, 1, parent=hydrology.node(5)) # ID: 16
+        hydrology.addNode((6588.2148673450665, -117.71872224815615), 173.81, 1, parent=hydrology.node(6)) # ID: 17
+        hydrology.addNode((4551.139609616782, 2946.8162338070397), 173.81, 1, parent=hydrology.node(7)) # ID: 18
+        hydrology.addNode((1686.515368282502, 4331.337680237612), 173.81, 1, parent=hydrology.node(8)) # ID: 19
+        hydrology.addNode((-267.90201010200553, 3922.9057071722514), 173.81, 1, parent=hydrology.node(8)) # ID: 20
+        hydrology.addNode((-3628.3824225111284, 4028.245250826377), 173.81, 1, parent=hydrology.node(9)) # ID: 21
+        hydrology.addNode((-3981.7104458665694, 811.7400528187368), 347.62, 1, parent=hydrology.node(10)) # ID: 22
+        hydrology.addNode((-4397.990228017062, -1094.8102298855324), 347.62, 1, parent=hydrology.node(10)) # ID: 23
+        hydrology.addNode((-3139.1312650010427, 2351.151965827316), 347.62, 1, parent=hydrology.node(11)) # ID: 24
+        hydrology.addNode((-3652.2156918437145, -3468.52530321843), 347.62, 1, parent=hydrology.node(12)) # ID: 25
+        hydrology.addNode((-1636.5946626095852, -4565.8277541525395), 347.62, 1, parent=hydrology.node(13)) # ID: 26
+        hydrology.addNode((1544.4836554558808, -3498.6811242200897), 347.62, 1, parent=hydrology.node(14)) # ID: 27
+        hydrology.addNode((4066.8172916595668, -1433.742496404423), 347.62, 1, parent=hydrology.node(16)) # ID: 28
+        hydrology.addNode((4397.765121188957, 648.2121881900088), 347.62, 1, parent=hydrology.node(17)) # ID: 29
+        hydrology.addNode((2306.434717613504, 2358.5814186043426), 347.62, 1, parent=hydrology.node(18)) # ID: 30
+        hydrology.addNode((-1017.1741446275356, 1726.701818999854), 347.62, 1, parent=hydrology.node(20)) # ID: 31
+        hydrology.addNode((-2307.913817105099, -795.4702929502098), 521.4300000000001, 1, parent=hydrology.node(22)) # ID: 32
+        hydrology.addNode((-1496.566016258495, -2609.517313645959), 521.4300000000001, 1, parent=hydrology.node(25)) # ID: 33
+        hydrology.addNode((1363.0351974719795, -1185.2860634716526), 521.4300000000001, 1, parent=hydrology.node(27)) # ID: 34
+        hydrology.addNode((2670.0365109674985, 419.2884533342087), 521.4300000000001, 1, parent=hydrology.node(28)) # ID: 35
+        hydrology.addNode((707.4833463640621, 676.8933493181478), 521.4300000000001, 1, parent=hydrology.node(30)) # ID: 36
+
+        points = [node.position for node in hydrology.allNodes()]
+
+        # Add corners so that the entire area is covered
+        points.append((-shore.realShape[0],-shore.realShape[1]))
+        points.append((-shore.realShape[0],shore.realShape[1]))
+        points.append((shore.realShape[0],shore.realShape[1]))
+        points.append((shore.realShape[0],-shore.realShape[1]))
+        
+        vor = Voronoi(points,qhull_options='Qbb Qc Qz Qx')
+
+        outputFile = '/home/zjwatt/software-projects/terrainHydrology/in/test-example/out/voronoi-edges/voronoi-edges'
+        ## Create the .prj file to be read by GIS software
+        with open(f'{outputFile}.prj', 'w') as prj:
+            prjstr = f'PROJCS["unknown",GEOGCS["GCS_unknown",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Orthographic"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],PARAMETER["Longitude_Of_Center",{0.0}],PARAMETER["Latitude_Of_Center",{0.0}],UNIT["Meter",1.0]]'
+            prj.write(prjstr)
+            prj.close()
+        with shapefile.Writer(outputFile, shapeType=3) as w:
+            w.field('id', 'L')
+            # print(vor.ridge_vertices)
+            for vertexID in len(vor.ridge_vertices):
+                vertex = vor.ridge_vertices[vertexID]
+                if vertex[0] == -1 or vertex[1] == -1:
+                    continue
+                # if len(ridge) < 2:
+                # continue
+                coords = [ ]
+                coords.append(vor.vertices[vertex[0]])
+                coords.append(vor.vertices[vertex[1]])
+                coords = [(p[0],p[1]) for p in coords]
+                w.record(vertexID)
+                w.line([list(coords)])
+            w.close()
+
+        outputFile = '/home/zjwatt/software-projects/terrainHydrology/in/test-example/out/voronoi-vertices/voronoi-vertices'
+        ## Create the .prj file to be read by GIS software
+        with open(f'{outputFile}.prj', 'w') as prj:
+            prjstr = f'PROJCS["unknown",GEOGCS["GCS_unknown",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Orthographic"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],PARAMETER["Longitude_Of_Center",{0.0}],PARAMETER["Latitude_Of_Center",{0.0}],UNIT["Meter",1.0]]'
+            prj.write(prjstr)
+            prj.close()
+        with shapefile.Writer(outputFile, shapeType=1) as w:
+            w.field('id', 'L')
+            # print(vor.vertices)
+            for vertexID in len(vor.vertices):
+                vertex = vor.vertices[vertexID]
+                # if vertex[0] == -1 or vertex[1] == -1:
+                    # continue
+                # if len(ridge) < 2:
+                # continue
+                # coords = [ ]
+                # coords.append(vor.vertices[vertex[0]])
+                # coords.append(vor.vertices[vertex[1]])
+                # coords = [(p[0],p[1]) for p in coords]
+                w.record(vertexID)
+                w.point(vertex)
+            w.close()
 
     def test_findShoreSegment0(self) -> None:
         mockShore = Mock()
