@@ -252,6 +252,7 @@ class ShoreModelShapefile(ShoreModel):
         with shapefile.Reader(inputFileName, shapeType=5) as shp:
             self.contour = shp.shape(0).points[1:] # the first and last points are identical, so remove them
             self.contour.reverse() # pyshp stores shapes in clockwise order, but we want counterclockwise
+            self.contour = np.array(self.contour, dtype=np.dtype(np.float32))
             self.pointTree = cKDTree(self.contour)
     def _initFromBinary(self, binary: typing.IO) -> None:
         contourLength = struct.unpack('!Q', binary.read(struct.calcsize('!Q')))[0]
@@ -263,8 +264,8 @@ class ShoreModelShapefile(ShoreModel):
             ))
         self.pointTree = cKDTree(self.contour)
     def distanceToShore(self, loc: Point) -> bool:
-        #    for some reason this method is       y, x
-        return cv.pointPolygonTest(self.contour, (loc[1],loc[0]), True)
+        # in this class, the contour is stored as x,y, so we put the test points in as x,y
+        return cv.pointPolygonTest(self.contour, (loc[0],loc[1]), True)
     def isOnLand(self, loc: Point) -> bool:
         return self.distanceToShore(loc) >= 0
     def __getitem__(self, index: int):

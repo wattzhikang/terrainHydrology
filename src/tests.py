@@ -2,6 +2,7 @@
 
 from concurrent.futures import process
 from operator import truediv
+from tkinter import N
 import unittest
 from unittest import mock
 from unittest.mock import Mock, MagicMock
@@ -47,6 +48,14 @@ class ShapefileShoreTests(unittest.TestCase):
         self.assertEqual(2, len(closestIndices))
         self.assertEqual(2, closestIndices[0])
         self.assertEqual(3, closestIndices[1])
+    
+    def test_onLand(self) -> None:
+        shore = ShoreModelShapefile(inputFileName='inputShape')
+
+        self.assertTrue(shore.isOnLand((0,-100)))
+        self.assertTrue(shore.isOnLand((50,-100)))
+        self.assertFalse(shore.isOnLand((35,-120)))
+        pass
 
     def tearDown(self) -> None:
         os.remove('inputShape.shp')
@@ -696,11 +705,12 @@ class HoneycombTests(unittest.TestCase):
         self.assertEqual(processedEdges[5].Q1, createdQs[31])
 
     def test_many_cells(self) -> None:
-        # edgeLength, shore, hydrology, cells = testcodegenerator.getPredefinedObjects0()
-
         with shapefile.Writer('inputShape', shapeType=5) as shp:
             #         0           1         2             3             4          5          (beginning)
-            shape = [(100, 132), (200, 0), (100, -172), (-100, -172), (-200, 0), (-100, 132), (100, 132)]
+            # shape = [(100, 132), (200, 0), (100, -172), (-100, -172), (-200, 0), (-100, 132), (100, 132)]
+            # shape = [ (e[0] * 93.6, e[1] * 93.6) for e in shape ]
+            #         0                 1              2                  3                 4             5           (beginning)
+            shape = [(-4623.8,6201.5), (-9299.9,0.0), (-4629.4,-8124.4), (4751.4,-8114.7), (9417.8,0.0), (4741,6209), (-4623.8,6201.5) ]
             shape.reverse() # pyshp expects shapes to be clockwise
 
             shp.field('name', 'C')
@@ -711,6 +721,10 @@ class HoneycombTests(unittest.TestCase):
         os.remove('inputShape.shp')
         os.remove('inputShape.dbf')
         os.remove('inputShape.shx')
+
+        self.assertFalse(shore.isOnLand((-24954,17780)))
+        self.assertTrue(shore.isOnLand((-6591,1545)))
+        self.assertFalse(shore.isOnLand((-7144.4,-5165.1)))
 
         hydrology = HydrologyNetwork()
 
@@ -767,7 +781,78 @@ class HoneycombTests(unittest.TestCase):
         vor.ridge_vertices = [ [-1, 2], [1, 5], [-1, 1], [2, 6], [5, 6], [-1, 3], [0, 7], [-1, 0], [3, 8], [7, 8], [0, 10], [1, 4], [4, 11], [10, 11], [2, 9], [3, 14], [9, 15], [14, 15], [9, 16], [6, 18], [16, 18], [16, 26], [17, 19], [18, 19], [17, 25], [25, 26], [5, 12], [12, 27], [19, 28], [27, 28], [30, 31], [30, 33], [31, 32], [32, 34], [33, 34], [11, 21], [4, 33], [21, 30], [12, 20], [20, 34], [29, 32], [31, 35], [29, 36], [35, 36], [7, 37], [8, 13], [13, 38], [37, 38], [39, 41], [39, 43], [40, 44], [40, 42], [41, 42], [43, 44], [21, 39], [35, 41], [10, 43], [37, 44], [38, 46], [13, 23], [23, 45], [45, 46], [40, 47], [46, 47], [24, 48], [24, 25], [26, 50], [48, 50], [15, 49], [49, 50], [27, 52], [28, 51], [51, 52], [20, 53], [52, 53], [29, 55], [53, 55], [59, 63], [59, 61], [60, 61], [60, 62], [62, 63], [48, 59], [49, 63], [22, 57], [22, 24], [57, 58], [58, 61], [23, 60], [56, 58], [45, 56], [14, 62], [64, 65], [64, 66], [65, 67], [66, 68], [67, 68], [54, 55], [51, 65], [54, 64], [17, 67], [22, 68], [69, 70], [69, 71], [70, 75], [71, 72], [72, 73], [73, 74], [74, 75], [47, 69], [56, 70], [42, 71], [57, 75], [36, 72], [54, 73], [66, 74] ]
         vor.ridge_points = [ [39, 40], [39, 8], [39, 38], [39, 6], [39, 7], [37, 40], [37, 1], [37, 38], [37, 3], [37, 2], [38, 1], [38, 8], [38, 9], [38, 0], [40, 6], [40, 3], [40, 5], [40, 4], [6, 5], [6, 7], [6, 17], [17, 5], [17, 29], [17, 7], [17, 28], [17, 16], [7, 8], [7, 19], [7, 29], [7, 18], [21, 11], [21, 9], [21, 24], [21, 20], [21, 8], [9, 0], [9, 8], [9, 11], [8, 19], [8, 20], [24, 20], [24, 11], [24, 31], [24, 22], [2, 1], [2, 3], [2, 13], [2, 12], [10, 11], [10, 0], [10, 12], [10, 23], [10, 22], [10, 1], [11, 0], [11, 22], [0, 1], [1, 12], [13, 12], [13, 3], [13, 26], [13, 25], [12, 23], [12, 25], [16, 27], [16, 28], [16, 5], [16, 15], [5, 4], [5, 15], [18, 19], [18, 29], [18, 30], [19, 20], [19, 30], [20, 31], [20, 30], [14, 15], [14, 27], [14, 26], [14, 3], [14, 4], [15, 27], [15, 4], [27, 34], [27, 28], [27, 33], [27, 26], [26, 3], [26, 33], [26, 25], [3, 4], [35, 30], [35, 36], [35, 29], [35, 34], [35, 28], [30, 31], [30, 29], [30, 36], [29, 28], [28, 34], [32, 25], [32, 23], [32, 33], [32, 22], [32, 31], [32, 36], [32, 34], [25, 23], [25, 33], [23, 22], [33, 34], [22, 31], [31, 36], [36, 34] ]
 
+        point_ridges: typing.Dict[int, typing.List[int]] = TerrainHoneycombFunctions.ridgesToPoints(vor)
 
+        createdQs: typing.Dict[int, Q] = { }
+        createdEdges: typing.Dict[int, Edge] = { }
+
+        cells = { }
+        for node in hydrology.allNodes():
+            # if node.id == 0:
+            #     breakpoint()
+            # order the cell edges in counterclockwise order
+            point_ridges[node.id] = TerrainHoneycombFunctions.orderEdges(point_ridges[node.id], node.position, vor, shore)
+            TerrainHoneycombFunctions.orderCreatedEdges(point_ridges[node.id], vor, createdEdges)
+
+            # self.assertTrue(shore.isOnLand(vor.vertices[point_ridges[node.id][0]]))
+
+            # then we have to organize and set up all the edges of the cell
+            cells[node.id] = TerrainHoneycombFunctions.processRidge(point_ridges[node.id], [ ], createdEdges, createdQs, vor, shore, hydrology)
+
+        self.assertEqual(5, len(cells[35]))
+        self.assertTrue(createdEdges[92] in cells[35])
+        self.assertTrue(createdQs[65] == createdEdges[92].Q0 or createdQs[65] == createdEdges[92].Q1)
+        self.assertTrue(createdQs[64] == createdEdges[92].Q0 or createdQs[64] == createdEdges[92].Q1)
+        self.assertFalse(createdEdges[92].hasRiver)
+        self.assertTrue(createdEdges[93] in cells[35])
+        self.assertTrue(createdQs[64] == createdEdges[93].Q0 or createdQs[64] == createdEdges[93].Q1)
+        self.assertTrue(createdQs[66] == createdEdges[93].Q0 or createdQs[66] == createdEdges[93].Q1)
+        self.assertFalse(createdEdges[93].hasRiver)
+        self.assertTrue(createdEdges[95] in cells[35])
+        self.assertTrue(createdQs[66] == createdEdges[95].Q0 or createdQs[66] == createdEdges[95].Q1)
+        self.assertTrue(createdQs[68] == createdEdges[95].Q0 or createdQs[68] == createdEdges[95].Q1)
+        self.assertFalse(createdEdges[95].hasRiver)
+        self.assertTrue(createdEdges[96] in cells[35])
+        self.assertTrue(createdQs[68] == createdEdges[96].Q0 or createdQs[68] == createdEdges[96].Q1)
+        self.assertTrue(createdQs[67] == createdEdges[96].Q0 or createdQs[67] == createdEdges[96].Q1)
+        self.assertTrue(createdEdges[96].hasRiver)
+        self.assertTrue(createdEdges[94] in cells[35])
+        self.assertTrue(createdQs[67] == createdEdges[94].Q0 or createdQs[67] == createdEdges[94].Q1)
+        self.assertTrue(createdQs[65] == createdEdges[94].Q0 or createdQs[65] == createdEdges[94].Q1)
+        self.assertFalse(createdEdges[94].hasRiver)
+
+        self.assertEqual(5, len(cells[7]))
+        self.assertTrue(createdEdges[29] in cells[7])
+        self.assertTrue(createdEdges[28] in cells[7])
+        self.assertTrue(createdEdges[23] in cells[7])
+        self.assertTrue(createdEdges[19] in cells[7])
+
+        self.assertEqual(6, len(cells[3]))
+        self.assertTrue(createdEdges[45] in cells[3])
+        self.assertTrue(createdEdges[59] in cells[3])
+        self.assertTrue(createdEdges[88] in cells[3])
+        self.assertTrue(createdEdges[80] in cells[3])
+        self.assertTrue(createdEdges[91] in cells[3])
+        self.assertEqual(1, len([edge for edge in cells[3] if edge.isShore]))
+        shoreEdge: Edge = [edge for edge in cells[3] if edge.isShore][0]
+        self.assertEqual((2,3), shoreEdge.shoreSegment)
+
+        self.assertEqual(4, len(cells[1]))
+        self.assertTrue(createdEdges[57] in cells[1])
+        self.assertTrue(createdEdges[53] in cells[1])
+        self.assertTrue(createdEdges[56] in cells[1])
+        self.assertEqual(1, len([edge for edge in cells[1] if edge.isShore]))
+        shoreEdge: Edge = [edge for edge in cells[1] if edge.isShore][0]
+        self.assertEqual((1,2), shoreEdge.shoreSegment)
+
+        self.assertEqual(4, len(cells[6]))
+        self.assertTrue(createdEdges[19] in cells[6])
+        self.assertTrue(createdEdges[20] in cells[6])
+        self.assertEqual(2, len([edge for edge in cells[6] if edge.isShore]))
+        shoreEdge: Edge = [edge for edge in cells[6] if edge.isShore][0]
+        self.assertEqual((3,4), shoreEdge.shoreSegment)
+        shoreEdge = [edge for edge in cells[6] if edge.isShore][1]
+        self.assertEqual((4,5), shoreEdge.shoreSegment)
 
         # print(f'vor.vertices: [ ', end='')
         # for vertex in vor.vertices:

@@ -1,3 +1,4 @@
+from concurrent.futures import process
 import typing
 
 import numpy as np
@@ -34,34 +35,37 @@ def initializeTerrainHoneycomb(shore: ShoreModel, hydrology: HydrologyNetwork) -
     points.append((-shore.realShape[0],shore.realShape[1]))
     points.append((shore.realShape[0],shore.realShape[1]))
     points.append((shore.realShape[0],-shore.realShape[1]))
-    
+
     vor = Voronoi(points,qhull_options='Qbb Qc Qz Qx')
 
     # This is for reverse lookup of ridge_points. Given a point (node ID),
     # it retrieves the ridges that border it
     point_ridges: typing.Dict[int, typing.List[int]] = ridgesToPoints(vor)
 
+    createdQs: typing.Dict[int, Q] = { }
     createdEdges: typing.Dict[int, Edge] = { }
 
+    cells = { }
     for node in hydrology.allNodes():
         # order the cell edges in counterclockwise order
         point_ridges[node.id] = orderEdges(point_ridges[node.id], node.position, vor, shore)
+        orderCreatedEdges(point_ridges[node.id], vor, createdEdges)
 
         # then we have to organize and set up all the edges of the cell
-        pass
+        cells[node.id] = processRidge(point_ridges[node.id], [ ], createdEdges, createdQs, vor, shore, hydrology)
+
+    return cells
 
 # This is for reverse lookup of ridge_points. Given a point (node ID),
 # it retrieves the ridges that border it
 def ridgesToPoints(vor: Voronoi) -> typing.Dict[int, typing.List[int]]:
     point_ridges = { }
-    ridgeID = -1
-    for points in vor.ridge_points:
-        ridgeID = ridgeID + 1
+    for ridgeID, points in enumerate(vor.ridge_points):
         for point in points: # there should only be 2 of these
-            if not point_ridges[point]:
-                point_ridges[point] = [ ridgeID ]
-            else:
+            if point in point_ridges:
                 point_ridges[point].append(ridgeID)
+            else:
+                point_ridges[point] = [ ridgeID ]
     return point_ridges
 
 # This function will process a normal ridge that is entirely located on land and may or may not be transected by a river.
@@ -99,7 +103,13 @@ def processRidge(edgesLeft: typing.List[int], cellEdges: typing.List[Edge], crea
                 Q1 = Q(getVertex1(ridgeID, vor))
                 createdQs[getVertexID1(ridgeID, vor)] = Q1
 
-            newRidge: Edge = Edge(Q0, Q1, hasRiver=hasRiver(ridgeID, vor, hydrology), isShore=False)
+            shoreSegment: typing.Tuple[int,int] = None
+            if len(cellEdges) > 1 and cellEdges[-1].isShore:
+                shoreSegment = cellEdges[-1].shoreSegment
+
+            # if ridgeID == 35:
+            #     breakpoint()
+            newRidge: Edge = Edge(Q0, Q1, hasRiver=hasRiver(ridgeID, vor, hydrology), isShore=False, shoreSegment=shoreSegment)
             createdEdges[edgesLeft[0]] = newRidge
         cellEdges.append(newRidge)
         edgesLeft = edgesLeft[1:]
@@ -114,6 +124,7 @@ def processRidge(edgesLeft: typing.List[int], cellEdges: typing.List[Edge], crea
 # This function does not assume that there is a previously-processed edge
 def terminateRidgeAndStartShore(edgesLeft: typing.List[int], cellEdges: typing.List[Edge], createdEdges: typing.Dict[int, Edge], createdQs: typing.Dict[int, Q], vor: Voronoi, shore: ShoreModel, hydrology: HydrologyNetwork) -> typing.List[Edge]:
     terminatedEdge: Edge = None
+    shoreSegment = None # TMP DEBUG
     if edgesLeft[0] in createdEdges:
         terminatedEdge = createdEdges[edgesLeft[0]]
     else:
@@ -136,16 +147,20 @@ def terminateRidgeAndStartShore(edgesLeft: typing.List[int], cellEdges: typing.L
         Q1: Q = None
 
         shoreSegment: typing.Tuple[int, int] = findIntersectingShoreSegment(getVertex0(edgesLeft[0], vor), getVertex1(edgesLeft[0], vor), shore)
+        if shoreSegment[0] >= len(shore) or shoreSegment[1] >= len(shore):
+            breakpoint()
         intersection: Point = Math.edgeIntersection(getVertex0(edgesLeft[0], vor), getVertex1(edgesLeft[0], vor), shore[shoreSegment[0]], shore[shoreSegment[1]])
 
         Q1: Q = Q(intersection)
 
+        # if edgesLeft[0] == 35:
+        #     breakpoint()
         terminatedEdge = Edge(Q0, Q1, hasRiver=hasRiver(edgesLeft[0], vor, hydrology), isShore=False, shoreSegment=shoreSegment)
         createdEdges[edgesLeft[0]] = terminatedEdge
 
     cellEdges.append(terminatedEdge)
     edgesLeft = edgesLeft[1:]
-    return processShoreSegment(shoreSegment, edgesLeft, cellEdges, createdEdges, createdQs, vor, shore, hydrology)
+    return processShoreSegment(terminatedEdge.shoreSegment, edgesLeft, cellEdges, createdEdges, createdQs, vor, shore, hydrology)
 # After a ridge has been terminated at the coast, this function can process the coastline until it finds an intersection
 # with one of the other ridges in the cell
 # This function assumes that at least one ridge has been processed so far.
@@ -154,17 +169,22 @@ def processShoreSegment(currentSegment: typing.Tuple[int, int], edgesLeft: typin
 
     # does the current shore segment intersect with any of the edges that haven't been processed yet?
     for otherRidgeID in edgesLeft:
+        # if currentSegment is None:
+        #     breakpoint()
         if Math.edgeIntersection(getVertex0(otherRidgeID, vor), getVertex1(otherRidgeID, vor), shore[currentSegment[0]], shore[currentSegment[1]]) is not None:
             return terminateShoreAndStartRidge(otherRidgeID, currentSegment, edgesLeft, cellEdges, createdEdges, createdQs, vor, shore, hydrology)
     
     # This Q does not exist anywhere but in this cell, so it cannot have been created previously
     Q1: Q = Q(shore[currentSegment[1]])
 
+    # if edgesLeft[0] == 35:
+    #     breakpoint()
     newEdge: Edge = Edge(Q0, Q1, hasRiver=False, isShore=True, shoreSegment=currentSegment)
-    createdEdges[edgesLeft[0]] = newEdge
+    # createdEdges[edgesLeft[0]] = newEdge
     cellEdges.append(newEdge)
 
-    currentSegment = (currentSegment[1], currentSegment[1] + 1)
+    nextIdx = currentSegment[1]+1 if currentSegment[1]+1 < len(shore) else 0
+    currentSegment = (currentSegment[1], nextIdx)
 
     return processShoreSegment(currentSegment, edgesLeft, cellEdges, createdEdges, createdQs, vor, shore, hydrology)
 
@@ -182,8 +202,10 @@ def terminateShoreAndStartRidge(intersectingRidgeID: int, currentSegment: typing
         intersection: typing.Tuple[float, float] = Math.edgeIntersection(getVertex0(intersectingRidgeID, vor), getVertex1(intersectingRidgeID, vor), shore[currentSegment[0]], shore[currentSegment[1]])
         Q1: Q = Q(intersection)
 
+    # if edgesLeft[0] == 35:
+    #     breakpoint()
     newEdge: Edge = Edge(Q0, Q1, hasRiver=False, isShore=True, shoreSegment=currentSegment)
-    createdEdges[edgesLeft[0]] = newEdge
+    # createdEdges[edgesLeft[0]] = newEdge
     cellEdges.append(newEdge)
 
     intersectingRidgeIdx = edgesLeft.index(intersectingRidgeID)
@@ -203,9 +225,11 @@ def findIntersectingShoreSegment(p0: Point, p1: Point, shore: ShoreModel) -> typ
         indexes: typing.List[int] = shore.closestNPoints(p0, 4**power)
         for index in indexes:
             if index >= len(shore):
+                breakpoint()
                 return None
-            if Math.edgeIntersection(shore[index], shore[index+1], p0, p1) is not None:
-                return (index, index + 1)
+            otherIndex = index+1 if index+1 < len(shore) else 0
+            if Math.edgeIntersection(shore[index], shore[otherIndex], p0, p1) is not None:
+                return (index, otherIndex)
         power = power + 1
 
 def orderEdges(edgesLeft: typing.List[int], nodeLoc: typing.Tuple[float,float], vor: Voronoi, shore: ShoreModel) -> typing.List[int]:
@@ -237,10 +261,9 @@ def orderEdges(edgesLeft: typing.List[int], nodeLoc: typing.Tuple[float,float], 
             return None
     # shift the edges so that the list starts with an edge whose
     # counterclockwise-most vertex is on land
-    for idx in range(len(orderedEdges)):
-        ridgeID: int = orderedEdges[idx]
+    for idx, ridgeID in enumerate(orderedEdges):
         if shore.isOnLand(getVertex0(ridgeID, vor)):
-            orderedEdges = orderedEdges[idx: idx+len(orderedEdges)]
+            orderedEdges = orderedEdges[idx:] + orderedEdges[:idx]
             break
     return orderedEdges
 
@@ -256,18 +279,21 @@ def orderCreatedEdges(edgesLeft: typing.List[int], vor: Voronoi, createdEdges: t
         #    (first vertex must not be on land)
         # 3) second vertex matches first Q
         # 4) second vertex matches second Q
-        if edge[0].position == getVertex0(edgeID, vor):
-            continue
-        elif edge[0].position == getVertex1(edgeID, vor):
-            swap: Q = edge.Q0
-            edge.Q0 = edge.Q1
-            edge.Q1 = swap
-        elif edge[1].position == getVertex0(edgeID, vor):
-            swap: Q = edge.Q0
-            edge.Q0 = edge.Q1
-            edge.Q1 = swap
-        else: # edge[1].position == getVertex1(edgeID, vor):
-            continue
+        try:
+            if edge[0].position == getVertex0(edgeID, vor):
+                continue
+            elif edge[0].position == getVertex1(edgeID, vor):
+                swap: Q = edge.Q0
+                edge.Q0 = edge.Q1
+                edge.Q1 = swap
+            elif edge[1].position == getVertex0(edgeID, vor):
+                swap: Q = edge.Q0
+                edge.Q0 = edge.Q1
+                edge.Q1 = swap
+            else: # edge[1].position == getVertex1(edgeID, vor):
+                continue
+        except:
+            breakpoint()
 
 # this function ensures that ridge vertices are always in counterclockwise order relative to the node's location
 def orderVertices(ridgeID: int, node: typing.Tuple[float, float], vor: Voronoi) -> None:
