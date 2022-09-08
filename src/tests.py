@@ -706,9 +706,6 @@ class HoneycombTests(unittest.TestCase):
 
     def test_many_cells(self) -> None:
         with shapefile.Writer('inputShape', shapeType=5) as shp:
-            #         0           1         2             3             4          5          (beginning)
-            # shape = [(100, 132), (200, 0), (100, -172), (-100, -172), (-200, 0), (-100, 132), (100, 132)]
-            # shape = [ (e[0] * 93.6, e[1] * 93.6) for e in shape ]
             #         0                 1              2                  3                 4             5           (beginning)
             shape = [(-4623.8,6201.5), (-9299.9,0.0), (-4629.4,-8124.4), (4751.4,-8114.7), (9417.8,0.0), (4741,6209), (-4623.8,6201.5) ]
             shape.reverse() # pyshp expects shapes to be clockwise
@@ -766,16 +763,6 @@ class HoneycombTests(unittest.TestCase):
         hydrology.addNode((2670.0365109674985, 419.2884533342087), 521.4300000000001, 1, parent=hydrology.node(28)) # ID: 35
         hydrology.addNode((707.4833463640621, 676.8933493181478), 521.4300000000001, 1, parent=hydrology.node(30)) # ID: 36
 
-        # shore.realShape = (37440.0, 37440.0)
-
-        # points = [node.position for node in hydrology.allNodes()]
-
-        # # Add corners so that the entire area is covered
-        # points.append((-shore.realShape[0],-shore.realShape[1]))
-        # points.append((-shore.realShape[0],shore.realShape[1]))
-        # points.append((shore.realShape[0],shore.realShape[1]))
-        # points.append((shore.realShape[0],-shore.realShape[1]))
-        
         vor = Mock()
         vor.vertices = [ [-46506.08407643312, -9.094947017729282e-13], [2.6147972675971687e-12, 44226.7005988024], [46543.64331210191, -2.5011104298755527e-12], [5.9117155615240335e-12, -46570.47133757962], [-3525.521902377971, 39972.85231539425], [13558.459960328704, 28110.80657410031], [26619.009606328877, 16377.840271237523], [-26698.104702750665, -16541.770008873114], [-5342.427753303965, -39560.66167400881], [35441.20183078683, -8340.111543380222], [-43498.34278442353, 2227.431051158057], [-24953.50872483222, 17779.580249280923], [5109.0255814912725, 8395.459690146301], [-1996.7447595539256, -8015.650590079869], [2714.3999999999996, -43216.37197452229], [23612.9992884097, -19655.530738544476], [11641.06983801728, -2720.635933976302], [5208.635601476787, -547.9650058651541], [6239.082845541137, 1659.004277335266], [5986.536369278422, 1676.7167717523037], [543.7155555507849, 4919.503757045385], [-6680.865690904744, 4292.62943852493], [2628.517404889034, -2249.842814561697], [-1696.5804304393203, -7448.368722268813], [3110.058763294175, -2838.0481729036733], [6058.009213215691, -2175.2977391683517], [6801.766437182614, -2593.381713240389], [4914.451075025957, 7354.28618418668], [5962.499774105598, 1698.2241612392727], [-1737.0018899900447, 3198.198620213414], [-5633.518041727106, 4134.436097778672], [-4356.371628548453, 2905.9619113121926], [-1959.7548342358916, 3605.116544637308], [-2298.865028087399, 6239.788272403492], [-1899.9120949673852, 5514.184556143233], [-4268.698468751132, 1969.1135115758668], [-2399.7332856176777, 946.1571866549236], [-7144.421744184177, -5165.081742070794], [-6474.766974314268, -5072.428085853662], [-6591.153478267191, 1545.413655907815], [-5811.891997043897, -1038.939525126176], [-5198.408619217473, 937.7837124750154], [-4997.4197777103145, 34.791145253456364], [-8437.747093365531, -59.129537389204245], [-6793.440632041436, -1219.8235314997867], [-2914.5426686927153, -4513.388678872556], [-5375.002315597173, -4355.289179137266], [-4425.902874448049, -2407.591207703676], [3011.7878956964087, -4334.590606933651], [5534.547354333574, -6661.643410927256], [5070.911181167803, -4995.22841079101], [3638.270932588358, 1853.3084656616168], [3152.2050915292384, 3708.1364069236884], [942.0084255460736, 3013.6037341770443], [576.1703235384243, 2402.732591397016], [574.891904979788, 2409.4569155464214], [-2378.928797097079, -3529.5263151107347], [203.50001261420107, -2440.0462406337037], [-161.45820480964403, -3688.2482638015335], [2796.866017821202, -4559.486873042995], [-408.331712981741, -6427.83647054344], [202.65938098626384, -4773.653516381512], [2714.3999999999996, -7281.950244970516], [2854.2932737297983, -7121.312605780729], [1781.7422398560416, 1256.4731251250837], [3397.988338982509, 1559.506235989755], [1610.0097690595885, -51.86421349350661], [3644.2791292781067, -299.29466596039265], [2745.5022729159978, -976.7761938725419], [-3198.719658880232, -2022.0344053429003], [-2924.745798906439, -2159.8181666861387], [-3444.7439420729106, -304.2230231495334], [-2361.878510549001, 823.5052256503409], [-854.634656375734, 52.16237023542806], [-449.7788363341592, -776.981365945501], [-480.5358806262716, -1066.624705116723] ]
         vor.ridge_vertices = [ [-1, 2], [1, 5], [-1, 1], [2, 6], [5, 6], [-1, 3], [0, 7], [-1, 0], [3, 8], [7, 8], [0, 10], [1, 4], [4, 11], [10, 11], [2, 9], [3, 14], [9, 15], [14, 15], [9, 16], [6, 18], [16, 18], [16, 26], [17, 19], [18, 19], [17, 25], [25, 26], [5, 12], [12, 27], [19, 28], [27, 28], [30, 31], [30, 33], [31, 32], [32, 34], [33, 34], [11, 21], [4, 33], [21, 30], [12, 20], [20, 34], [29, 32], [31, 35], [29, 36], [35, 36], [7, 37], [8, 13], [13, 38], [37, 38], [39, 41], [39, 43], [40, 44], [40, 42], [41, 42], [43, 44], [21, 39], [35, 41], [10, 43], [37, 44], [38, 46], [13, 23], [23, 45], [45, 46], [40, 47], [46, 47], [24, 48], [24, 25], [26, 50], [48, 50], [15, 49], [49, 50], [27, 52], [28, 51], [51, 52], [20, 53], [52, 53], [29, 55], [53, 55], [59, 63], [59, 61], [60, 61], [60, 62], [62, 63], [48, 59], [49, 63], [22, 57], [22, 24], [57, 58], [58, 61], [23, 60], [56, 58], [45, 56], [14, 62], [64, 65], [64, 66], [65, 67], [66, 68], [67, 68], [54, 55], [51, 65], [54, 64], [17, 67], [22, 68], [69, 70], [69, 71], [70, 75], [71, 72], [72, 73], [73, 74], [74, 75], [47, 69], [56, 70], [42, 71], [57, 75], [36, 72], [54, 73], [66, 74] ]
@@ -788,13 +775,9 @@ class HoneycombTests(unittest.TestCase):
 
         cells = { }
         for node in hydrology.allNodes():
-            # if node.id == 0:
-            #     breakpoint()
             # order the cell edges in counterclockwise order
             point_ridges[node.id] = TerrainHoneycombFunctions.orderEdges(point_ridges[node.id], node.position, vor, shore)
             TerrainHoneycombFunctions.orderCreatedEdges(point_ridges[node.id], vor, createdEdges)
-
-            # self.assertTrue(shore.isOnLand(vor.vertices[point_ridges[node.id][0]]))
 
             # then we have to organize and set up all the edges of the cell
             cells[node.id] = TerrainHoneycombFunctions.processRidge(point_ridges[node.id], [ ], createdEdges, createdQs, vor, shore, hydrology)
@@ -853,65 +836,6 @@ class HoneycombTests(unittest.TestCase):
         self.assertEqual((3,4), shoreEdge.shoreSegment)
         shoreEdge = [edge for edge in cells[6] if edge.isShore][1]
         self.assertEqual((4,5), shoreEdge.shoreSegment)
-
-        # print(f'vor.vertices: [ ', end='')
-        # for vertex in vor.vertices:
-        #     print(f'[{vertex[0]}, {vertex[1]}], ', end='')
-        # print(' ]')
-
-        # print(f'vor.ridge_vertices: [ ', end='')
-        # for vertices in vor.ridge_vertices:
-        #     print(f'{vertices}, ', end='')
-        # print(' ]')
-
-        # print(f'vor.ridge_points: [ ', end='')
-        # for pointPair in vor.ridge_points:
-        #     print(f'[{pointPair[0]}, {pointPair[1]}], ', end='')
-        # print(' ]')
-
-        # outputFile = '/home/zjwatt/software-projects/terrainHydrology/in/test-example/out/voronoi-edges/voronoi-edges'
-        # ## Create the .prj file to be read by GIS software
-        # with open(f'{outputFile}.prj', 'w') as prj:
-        #     prjstr = f'PROJCS["unknown",GEOGCS["GCS_unknown",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Orthographic"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],PARAMETER["Longitude_Of_Center",{0.0}],PARAMETER["Latitude_Of_Center",{0.0}],UNIT["Meter",1.0]]'
-        #     prj.write(prjstr)
-        #     prj.close()
-        # with shapefile.Writer(outputFile, shapeType=3) as w:
-        #     w.field('id', 'N')
-        #     # print(vor.ridge_vertices)
-        #     for vertexID, vertices in enumerate(vor.ridge_vertices):
-        #         if vertices[0] == -1 or vertices[1] == -1:
-        #             continue
-        #         # if len(ridge) < 2:
-        #         # continue
-        #         coords = [ ]
-        #         coords.append(vor.vertices[vertices[0]])
-        #         coords.append(vor.vertices[vertices[1]])
-        #         coords = [(p[0],p[1]) for p in coords]
-        #         w.record(vertexID)
-        #         w.line([list(coords)])
-        #     w.close()
-
-        # outputFile = '/home/zjwatt/software-projects/terrainHydrology/in/test-example/out/voronoi-vertices/voronoi-vertices'
-        # ## Create the .prj file to be read by GIS software
-        # with open(f'{outputFile}.prj', 'w') as prj:
-        #     prjstr = f'PROJCS["unknown",GEOGCS["GCS_unknown",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Orthographic"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],PARAMETER["Longitude_Of_Center",{0.0}],PARAMETER["Latitude_Of_Center",{0.0}],UNIT["Meter",1.0]]'
-        #     prj.write(prjstr)
-        #     prj.close()
-        # with shapefile.Writer(outputFile, shapeType=1) as w:
-        #     w.field('id', 'N')
-        #     # print(vor.vertices)
-        #     for vertexID, vertex in enumerate(vor.vertices):
-        #         # if vertex[0] == -1 or vertex[1] == -1:
-        #             # continue
-        #         # if len(ridge) < 2:
-        #         # continue
-        #         # coords = [ ]
-        #         # coords.append(vor.vertices[vertex[0]])
-        #         # coords.append(vor.vertices[vertex[1]])
-        #         # coords = [(p[0],p[1]) for p in coords]
-        #         w.record(vertexID)
-        #         w.point(vertex[0], vertex[1])
-        #     w.close()
 
     def test_findShoreSegment0(self) -> None:
         mockShore = Mock()

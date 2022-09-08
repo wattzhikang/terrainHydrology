@@ -11,27 +11,10 @@ def writeVoronoiEdges(outputFile: str, vor: Voronoi) -> None:
         prj.write(prjstr)
         prj.close()
 
-    with shapefile.Writer(outputFile, shapeType=3) as w:
-        w.field('id', 'L')
-
-        print(vor.ridge_vertices)
-
-        for ridge in vor.ridge_vertices:
-            if ridge[0] == -1 or ridge[1] == -1:
-                continue
-
-            # if len(ridge) < 2:
-            #     continue
-
-            coords = [ ]
-
-            coords.append(vor.vertices[ridge[0]])
-            coords.append(vor.vertices[ridge[1]])
-
-            coords = [(p[0],p[1]) for p in coords]
-
-            w.record(True)
-
-            w.line([list(coords)])
-
+    with shapefile.Writer(outputFile, shapeType=1) as w:
+        w.field('id', 'N')
+        # print(vor.vertices)
+        for vertexID, vertex in enumerate(vor.vertices):
+            w.record(vertexID)
+            w.point(vertex[0], vertex[1])
         w.close()
