@@ -55,91 +55,120 @@ class ShapefileShoreTests(unittest.TestCase):
         self.assertTrue(shore.isOnLand((0,-100)))
         self.assertTrue(shore.isOnLand((50,-100)))
         self.assertFalse(shore.isOnLand((35,-120)))
-        pass
 
     def tearDown(self) -> None:
         os.remove('inputShape.shp')
         os.remove('inputShape.dbf')
         os.remove('inputShape.shx')
 
-# class HydrologyFunctionTests(unittest.TestCase):
-#     def setUp(self):
-#         #create shore
-#         r = 100
-#         image = Image.new('L', (4*r,4*r))
+class ShapefileShoreTests(unittest.TestCase):
+    def setUp(self):
+        #create shore
+        r = 100
+        image = Image.new('L', (4*r,4*r))
 
-#         drawer = ImageDraw.Draw(image)
+        drawer = ImageDraw.Draw(image)
 
-#         #Keep in mind that these are _image_ coordinates
-#         drawer.polygon([(150,134),(100,200),(150,286),(250,286),(300,200),(250,134)], 255)
-#         #This should work out to (-500,660), (-1000,0), (-500,-860), (500,-860), (1000,0), (500,660)
+        #Keep in mind that these are _image_ coordinates
+        drawer.polygon([(150,134),(100,200),(150,286),(250,286),(300,200),(250,134)], 255)
+        #This should work out to (-500,660), (-1000,0), (-500,-860), (500,-860), (1000,0), (500,660)
 
-#         image.save('imageFile.png')
+        image.save('imageFile.png')
 
-#         shore = ShoreModel(10, 'imageFile.png')
+        self.shore = ShoreModelImage(10, 'imageFile.png')
 
-#         #create candidate nodes
-#         candidateNodes = [ ]
+    def test_closestNPoints(self):
+        closestIndices = self.shore.closestNPoints((-500,670), 4)
 
-#         candidateNodes.append(HydroPrimitive(0, None,  4.0, 1, None))
-#         candidateNodes.append(HydroPrimitive(1, None,  6.0, 2, None))
-#         candidateNodes.append(HydroPrimitive(2, None, 14.0, 3, None))
-#         candidateNodes.append(HydroPrimitive(3, None,  8.0, 3, None))
-#         candidateNodes.append(HydroPrimitive(4, None, 24.0, 1, None))
-#         candidateNodes.append(HydroPrimitive(5, None, 23.0, 4, None))
+        self.assertEqual(4, len(closestIndices))
+        self.assertEqual(0, closestIndices[0])
 
-#         #create hydrology
-#         hydrology = HydrologyNetwork()
+    def test_onLand(self) -> None:
+        self.assertTrue(self.shore.isOnLand((-287,326)))
+        self.assertTrue(self.shore.isOnLand((723,-370)))
+        self.assertFalse(self.shore.isOnLand((-853,308)))
 
-#         #create real mouth nodes
-#         self.node0 = hydrology.addNode(shore[215], 0, 0, 215) # This should be (130,-860)
-#         hydrology.addNode(shore[225], 0, 0, 225) # This should be (230,-860)
-#         hydrology.addNode(shore[235], 0, 0, 235) # This should be (330,-860)
+    def tearDown(self) -> None:
+        os.remove('imageFile.png')
 
-#         hydrology.addNode((130,-760), 10, 0, parent=self.node0)
+class HydrologyFunctionTests(unittest.TestCase):
+    def setUp(self):
+        #create shore
+        r = 100
+        image = Image.new('L', (4*r,4*r))
+
+        drawer = ImageDraw.Draw(image)
+
+        #Keep in mind that these are _image_ coordinates
+        drawer.polygon([(150,134),(100,200),(150,286),(250,286),(300,200),(250,134)], 255)
+        #This should work out to (-500,660), (-1000,0), (-500,-860), (500,-860), (1000,0), (500,660)
+
+        image.save('imageFile.png')
+
+        shore = ShoreModelImage(10, 'imageFile.png')
+
+        #create candidate nodes
+        candidateNodes = [ ]
+
+        candidateNodes.append(HydroPrimitive(0, None,  4.0, 1, None))
+        candidateNodes.append(HydroPrimitive(1, None,  6.0, 2, None))
+        candidateNodes.append(HydroPrimitive(2, None, 14.0, 3, None))
+        candidateNodes.append(HydroPrimitive(3, None,  8.0, 3, None))
+        candidateNodes.append(HydroPrimitive(4, None, 24.0, 1, None))
+        candidateNodes.append(HydroPrimitive(5, None, 23.0, 4, None))
+
+        #create hydrology
+        hydrology = HydrologyNetwork()
+
+        #create real mouth nodes
+        self.node0 = hydrology.addNode(shore[215], 0, 0, 215) # This should be (130,-860)
+        hydrology.addNode(shore[225], 0, 0, 225) # This should be (230,-860)
+        hydrology.addNode(shore[235], 0, 0, 235) # This should be (330,-860)
+
+        hydrology.addNode((130,-760), 10, 0, parent=self.node0)
         
-#         #create the parameters object
-#         edgelength = 100
-#         sigma = 0.75
-#         eta = 0.5
-#         zeta = 14
-#         self.params = HydrologyFunctions.HydrologyParameters(shore, hydrology, None, None, None, None, edgelength, sigma, eta, zeta, None, None, candidateNodes)
+        #create the parameters object
+        edgelength = 100
+        sigma = 0.75
+        eta = 0.5
+        zeta = 14
+        self.params = HydrologyFunctions.HydrologyParameters(shore, hydrology, None, None, None, None, edgelength, sigma, eta, zeta, None, None, candidateNodes)
 
-#     def test_select_node(self):
-#         selectedNode = HydrologyFunctions.selectNode(self.params.candidates, self.params.zeta)
+    def test_select_node(self):
+        selectedNode = HydrologyFunctions.selectNode(self.params.candidates, self.params.zeta)
 
-#         self.assertEqual(self.params.zeta, 14.0)
-#         self.assertEqual(selectedNode.id, 3)
+        self.assertEqual(self.params.zeta, 14.0)
+        self.assertEqual(selectedNode.id, 3)
     
-#     def test_is_acceptable_position_not_on_land(self):
-#         acceptable0 = HydrologyFunctions.isAcceptablePosition((-100,-900), self.params)
-#         acceptable1 = HydrologyFunctions.isAcceptablePosition((-100,-700), self.params)
+    def test_is_acceptable_position_not_on_land(self):
+        acceptable0 = HydrologyFunctions.isAcceptablePosition((-100,-900), self.params)
+        acceptable1 = HydrologyFunctions.isAcceptablePosition((-100,-700), self.params)
         
-#         self.assertFalse(acceptable0)
-#         self.assertTrue(acceptable1)
+        self.assertFalse(acceptable0)
+        self.assertTrue(acceptable1)
     
-#     def test_is_acceptable_position_too_close_to_seeee(self):
-#         acceptable = HydrologyFunctions.isAcceptablePosition((-100,-830), self.params)
+    def test_is_acceptable_position_too_close_to_seeee(self):
+        acceptable = HydrologyFunctions.isAcceptablePosition((-100,-830), self.params)
 
-#         self.assertFalse(acceptable)
+        self.assertFalse(acceptable)
     
-#     def test_is_acceptable_position_too_close_to_nodes_or_edges(self):
-#         acceptable0 = HydrologyFunctions.isAcceptablePosition((80,-800), self.params)
-#         acceptable1 = HydrologyFunctions.isAcceptablePosition((100,-600), self.params)
+    def test_is_acceptable_position_too_close_to_nodes_or_edges(self):
+        acceptable0 = HydrologyFunctions.isAcceptablePosition((80,-800), self.params)
+        acceptable1 = HydrologyFunctions.isAcceptablePosition((100,-600), self.params)
         
-#         self.assertFalse(acceptable0)
-#         self.assertTrue(acceptable1)
+        self.assertFalse(acceptable0)
+        self.assertTrue(acceptable1)
     
-#     def test_coast_normal(self):
-#         angle = HydrologyFunctions.coastNormal(self.node0, self.params)
+    def test_coast_normal(self):
+        angle = HydrologyFunctions.coastNormal(self.node0, self.params)
         
-#         self.assertAlmostEqual(angle, math.pi * 0.5, places=3)
+        self.assertAlmostEqual(angle, math.pi * 0.5, places=3)
 
-#     # def test_pick_new_node_position(self):
-#     #     pass
+    # def test_pick_new_node_position(self):
+    #     pass
     
-#     def tearDown(self) -> None:
-#         os.remove('imageFile.png')
+    def tearDown(self) -> None:
+        os.remove('imageFile.png')
 
 # class ExtendedHydrologyFunctionTests(unittest.TestCase):
 #     def setUp(self) -> None:

@@ -173,7 +173,8 @@ class ShoreModelImage(ShoreModel):
         self.contour=self.contour.reshape(-1,2)
         self.contour=np.flip(self.contour,1)
 
-        self.pointTree = cKDTree(self.contour)
+        realPoints = [fromImageCoordinates((loc[1],loc[0]), self.imgray.shape, resolution) for loc in self.contour]
+        self.pointTree = cKDTree(realPoints)
         
         self.imgOutline = self.img.copy()
         cv.drawContours(self.imgOutline, contours, -1, (0,255,0), 2)
