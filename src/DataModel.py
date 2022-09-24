@@ -721,11 +721,7 @@ class Q:
     """
     def __init__(self, position) -> None:
         self.position = position
-    # def __init__(self, position, nodes, iv):
-    #     self.position = position
-    #     self.nodes = nodes
-    #     self.vorIndex = iv # the index of the voronoi vertex this represents in vor.vertices
-    #     self.elevation = 0
+        self.elevation = 0
 
 class Edge:
     def __init__(self, Q0: Q, Q1: Q, hasRiver: bool, isShore: bool, shoreSegment: typing.Tuple[int, int]=None) -> None:

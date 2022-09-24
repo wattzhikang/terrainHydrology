@@ -170,28 +170,28 @@ class HydrologyFunctionTests(unittest.TestCase):
     def tearDown(self) -> None:
         os.remove('imageFile.png')
 
-# class ExtendedHydrologyFunctionTests(unittest.TestCase):
-#     def setUp(self) -> None:
-#         self.edgeLength, self.shore, self.hydrology, self.cells = testcodegenerator.getPredefinedObjects0()
+class ExtendedHydrologyFunctionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.edgeLength, self.shore, self.hydrology, self.cells = testcodegenerator.getPredefinedObjects0()
     
-#     def test_localWatershedTest(self) -> None:
-#         node = self.hydrology.node(14)
-#         cellArea = self.cells.cellArea(node)
-#         self.assertEqual(HydrologyFunctions.getLocalWatershed(node, self.cells), cellArea)
+    def test_localWatershedTest(self) -> None:
+        node = self.hydrology.node(14)
+        cellArea = self.cells.cellArea(node)
+        self.assertEqual(HydrologyFunctions.getLocalWatershed(node, self.cells), cellArea)
 
-#     def test_inheritedWatershedTest(self) -> None:
-#         node = self.hydrology.node(14)
-#         upstreamInherited = self.hydrology.node(27).inheritedWatershed
-#         self.assertEqual(HydrologyFunctions.getInheritedWatershed(node, self.hydrology), node.localWatershed + upstreamInherited)
+    def test_inheritedWatershedTest(self) -> None:
+        node = self.hydrology.node(14)
+        upstreamInherited = self.hydrology.node(27).inheritedWatershed
+        self.assertEqual(HydrologyFunctions.getInheritedWatershed(node, self.hydrology), node.localWatershed + upstreamInherited)
 
-#     def test_flowTest(self) -> None:
-#         node = self.hydrology.node(14)
-#         expectedFlow = 0.42 * node.inheritedWatershed**0.69
-#         self.assertEqual(HydrologyFunctions.getFlow(node.inheritedWatershed), expectedFlow)
-#         pass
+    def test_flowTest(self) -> None:
+        node = self.hydrology.node(14)
+        expectedFlow = 0.42 * node.inheritedWatershed**0.69
+        self.assertEqual(HydrologyFunctions.getFlow(node.inheritedWatershed), expectedFlow)
+        pass
 
-#     def tearDown(self) -> None:
-#         os.remove('imageFile.png')
+    def tearDown(self) -> None:
+        os.remove('imageFile.png')
 
 class MathTests(unittest.TestCase):
     def setUp(self) -> None:
