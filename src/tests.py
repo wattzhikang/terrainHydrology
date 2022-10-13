@@ -913,59 +913,59 @@ class HoneycombTests(unittest.TestCase):
         # os.remove('imageFile.png')
         pass
 
-# class RiverTests(unittest.TestCase):
-#     def setUp(self) -> None:
-#         self.edgeLength, self.shore, self.hydrology, self.cells = testcodegenerator.getPredefinedObjects0()
+class RiverTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.edgeLength, self.shore, self.hydrology, self.cells = testcodegenerator.getPredefinedObjects0()
     
-#     def test_test(self) -> None:
-#         node = self.hydrology.node(3)
-#         node.rivers = [ ]
+    def test_test(self) -> None:
+        node = self.hydrology.node(3)
+        node.rivers = [ ]
 
-#         computeRivers(node, self.hydrology, self.cells)
+        computeRivers(node, self.hydrology, self.cells)
 
-#         # ensure that the river does not intersect any of the mountain ridges of any cells that it flows through
-#         allRidges = self.cells.cellRidges(3)
-#         allRidges += self.cells.cellRidges(14)
-#         allRidges += self.cells.cellRidges(27)
-#         allRidges += self.cells.cellRidges(34)
+        # ensure that the river does not intersect any of the mountain ridges of any cells that it flows through
+        allRidges = self.cells.cellRidges(3)
+        allRidges += self.cells.cellRidges(14)
+        allRidges += self.cells.cellRidges(27)
+        allRidges += self.cells.cellRidges(34)
 
-#         self.assertEqual(1, len(node.rivers))
+        self.assertEqual(1, len(node.rivers))
 
-#         river = list(node.rivers[0].coords)
-#         for i in range(len(river)-2):
-#             p0 = river[i]
-#             p1 = river[i+1]
-#             for ridge in allRidges:
-#                 if len(ridge) < 2:
-#                     continue
-#                 self.assertFalse(Math.segments_intersect_tuple(p0, p1, ridge[0].position, ridge[1].position))
+        river = list(node.rivers[0].coords)
+        for i in range(len(river)-2):
+            p0 = river[i]
+            p1 = river[i+1]
+            for ridge in allRidges:
+                if len(ridge) < 2:
+                    continue
+                self.assertFalse(Math.segments_intersect_tuple(p0, p1, ridge[0].position, ridge[1].position))
     
-#     def test_always_rising(self) -> None:
-#         node = self.hydrology.node(3)
-#         node.rivers = [ ]
+    def test_always_rising(self) -> None:
+        node = self.hydrology.node(3)
+        node.rivers = [ ]
 
-#         computeRivers(node, self.hydrology, self.cells)
+        computeRivers(node, self.hydrology, self.cells)
 
-#         river = list(node.rivers[0].coords)
+        river = list(node.rivers[0].coords)
         
-#         prevPoint = river[0]
-#         for point in river[1:]:
-#             self.assertTrue(prevPoint[2] > point[2])
-#             prevPoint = point
+        prevPoint = river[0]
+        for point in river[1:]:
+            self.assertTrue(prevPoint[2] > point[2])
+            prevPoint = point
 
-#     def tearDown(self) -> None:
-#         os.remove('imageFile.png')
+    def tearDown(self) -> None:
+        os.remove('imageFile.png')
 
-# class TerrainTests(unittest.TestCase):
-#     def setUp(self) -> None:
-#         self.edgeLength, self.shore, self.hydrology, self.cells = testcodegenerator.getPredefinedObjects0()
+class TerrainTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.edgeLength, self.shore, self.hydrology, self.cells = testcodegenerator.getPredefinedObjects0()
 
-#     def test_test(self) -> None:
-#         t = T((1519,-734), 34)
+    def test_test(self) -> None:
+        t = T((1519,-734), 34)
 
-#         z = computePrimitiveElevation(t, self.shore, self.hydrology, self.cells)
+        z = computePrimitiveElevation(t, self.shore, self.hydrology, self.cells)
         
-#         self.assertAlmostEqual(z, 933.975, delta=10.0)
+        self.assertAlmostEqual(z, 933.975, delta=10.0)
 
-#     def tearDown(self) -> None:
-#         os.remove('imageFile.png')
+    def tearDown(self) -> None:
+        os.remove('imageFile.png')
