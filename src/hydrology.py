@@ -261,7 +261,7 @@ try:
 
     ## Create terrain partition (voronoi cells)
     print('Generating terrain ridges...')
-    cells = TerrainHoneycombFunctions.initializeTerrainHoneycomb(shore, hydrology, resolution, edgeLength)
+    cells = TerrainHoneycombFunctions.initializeTerrainHoneycomb(shore, hydrology)
 
     ## Calculate watershed areas
     print('Calculating watershed areas...')

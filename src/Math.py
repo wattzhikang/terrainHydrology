@@ -3,7 +3,7 @@ import math
 
 import typing
 
-from DataModel import Point
+Point = typing.Tuple[float, float]
 
 # Copied from GitHub user kylemcdonald in gist https://gist.github.com/kylemcdonald/6132fc1c29fd3767691442ba4bc84018
 # intersection between line(p1, p2) and line(p3, p4)

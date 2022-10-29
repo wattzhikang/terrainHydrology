@@ -18,8 +18,7 @@ import abc
 import typing
 
 import Math
-
-Point = typing.Tuple[float, float]
+from Math import Point
 
 def toImageCoordinates(loc: typing.Tuple[float,float], imgSize: typing.Tuple[float,float], resolution: float) -> typing.Tuple[float,float]:
     x = loc[0]
@@ -104,9 +103,8 @@ class ShoreModel(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def distanceToShore(self, loc: Point) -> float:
         raise NotImplementedError
-    @abc.abstractmethod
     def isOnLand(self, loc: Point) -> bool:
-        raise NotImplementedError
+        return self.distanceToShore(loc) >= 0
     @abc.abstractmethod
     def __getitem__(self, index: int):
         """Gets a point on the shore by index
@@ -214,20 +212,6 @@ class ShoreModelImage(ShoreModel):
 
         #    for some reason this method is      y, x
         return cv.pointPolygonTest(self.contour,(loc[1],loc[0]),True) * self.resolution
-    def isOnLand(self, loc: Point) -> bool:
-        """Determines whether or not a point is on land or not
-
-        :param loc: The location to test
-        :type loc: a tuple of two floats
-        :return: True if the point is on land, False if otherwise
-        :rtype: bool
-        """
-        loc = toImageCoordinates(loc, self.imgray.shape, self.resolution)
-        
-        if 0 <= loc[0] < self.imgray.shape[1] and 0 <= loc[1] < self.imgray.shape[0]:
-            return self.imgray[int(loc[1])][int(loc[0])] == 255 # != 0
-        else:
-            return False
     def __getitem__(self, index: int):
         """Gets a point on the shore by index
 
@@ -267,8 +251,6 @@ class ShoreModelShapefile(ShoreModel):
     def distanceToShore(self, loc: Point) -> bool:
         # in this class, the contour is stored as x,y, so we put the test points in as x,y
         return cv.pointPolygonTest(self.contour, (loc[0],loc[1]), True)
-    def isOnLand(self, loc: Point) -> bool:
-        return self.distanceToShore(loc) >= 0
     def __getitem__(self, index: int):
         return self.contour[index]
 
@@ -719,9 +701,12 @@ class Q:
     :cvar elevation: The elevation of this point
     :vartype elevation: float
     """
-    def __init__(self, position) -> None:
+    def __init__(self, position: Point) -> None:
         self.position = position
+        self.nodes = [ ]
         self.elevation = 0
+    def addBorderedNode(self, nodeID: int) -> None:
+        self.nodes.append(nodeID)
 
 class Edge:
     def __init__(self, Q0: Q, Q1: Q, hasRiver: bool, isShore: bool, shoreSegment: typing.Tuple[int, int]=None) -> None:
@@ -891,8 +876,8 @@ class TerrainHoneycomb:
         :return: A list of points that correspond to the vertices that make the cell
         :rtype: list[tuple[float,float]]
         """
-        ridges = self.regions[self.vor_region_id(node)] # the indices of the vertex boundaries
-        return [self.vertices[x] for x in ridges if x != -1] # positions of all the vertices
+        ridges = self.cellsEdges[node] # the indices of the vertex boundaries
+        return [ridge.Q0.position for ridge in ridges] # positions of all the vertices
     def cellVertices(self, nodeID: int) -> typing.List[typing.Tuple[float,float]]:
         """Gets the coordinates of the vertices that define the shape of the node's cell
 
@@ -911,7 +896,7 @@ class TerrainHoneycomb:
         :return:
         :rtype: list[tuple[float,float]]
         """
-        return [self.vertices[vi] for vi in self.regions[self.vor_region_id(nodeID)] if vi != -1 and self.shore.isOnLand(self.vertices[vi])]
+        return self.ridgePositions(nodeID)
     def cellArea(self, node: HydroPrimitive) -> float:
         """Calculates the (rough) area of the cell that a location is in
 
@@ -938,14 +923,17 @@ class TerrainHoneycomb:
         :return: List of Q instances
         :rtype: list[Q]
         """
-        return [self.qs[vorIdx] for vorIdx in self.regions[self.vor_region_id(node)] if self.qs[vorIdx] is not None]
+        ridges = self.cellEdges[node]
+        return [ridge.Q0 for ridge in ridges]
     def allQs(self) -> typing.List[Q]:
         """Simply returns all Qs of the land
+
+        Note: the index of a Q in this list does not correspond to anything significant
 
         :return: All Qs of the land
         :rtype: list[Q]
         """
-        return self.qs.copy()
+        return self.qs.values()
     def boundingBox(self, n: int) -> typing.Tuple[float,float,float,float]:
         """Returns the measurements for a bounding box that would contain a cell
 
@@ -978,7 +966,7 @@ class TerrainHoneycomb:
         :return: True of point ``p`` is in the cell that corresponds to ``n``
         :rtype: bool
         """
-        return self.shore.isOnLand(p) and Math.pointInConvexPolygon(p, self.cellVertices(n), self.hydrology.node(n).position)
+        return Math.pointInConvexPolygon(p, self.cellVertices(n), self.hydrology.node(n).position)
     def cellRidges(self, n: int) -> typing.List[tuple]:
         """Returns the mountain ridges of a cell
 
@@ -997,7 +985,7 @@ class TerrainHoneycomb:
         :return: A list of tuples, each contain exactly 1 or 2 Qs.
         :rtype: list[tuple]
         """
-        return self.cellsRidges[n]
+        return [(edge.Q0, edge.Q1) for edge in self.cellsEdges[n] if not edge.hasRiver]
     def cellOutflowRidge(self, n: int) -> typing.Optional[typing.Tuple[int,int]]:
         """Returns the ridge through which the river flows out of the cell
 
@@ -1030,11 +1018,7 @@ class TerrainHoneycomb:
         for id in self.hydrology.query_ball_point(point, self.edgeLength):
             # if this point is within the voronoi region of one of those nodes,
             # then that is the point's node
-            vertices = self.cellVertices(id)
-            if len(vertices) < 1:
-                # Ignore cells with malformed shapes
-                continue
-            if Math.pointInConvexPolygon(point, vertices, self.hydrology.node(id).position):
+            if self.isInCell(id):
                 return id
         return None
 

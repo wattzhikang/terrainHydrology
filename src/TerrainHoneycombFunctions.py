@@ -23,11 +23,13 @@ def getRidgeElevation(q: Q, hydrology: HydrologyNetwork, terrainSlope: RasterDat
     """
     nodes = [hydrology.node(n) for n in q.nodes]
     maxElevation = max([node.elevation for node in nodes])
-    d = np.linalg.norm(q.position - nodes[0].position)
+    d = np.linalg.norm(np.array(q.position) - np.array(nodes[0].position))
     slope = terrainSlopeRate * terrainSlope[q.position[0],q.position[1]] / 255
     return maxElevation + d * slope
 
 def initializeTerrainHoneycomb(shore: ShoreModel, hydrology: HydrologyNetwork) -> TerrainHoneycomb:
+    cells = TerrainHoneycomb()
+
     points = [node.position for node in hydrology.allNodes()]
 
     # Add corners so that the entire area is covered
@@ -37,6 +39,7 @@ def initializeTerrainHoneycomb(shore: ShoreModel, hydrology: HydrologyNetwork) -
     points.append((shore.realShape[0],-shore.realShape[1]))
 
     vor = Voronoi(points,qhull_options='Qbb Qc Qz Qx')
+    vor.vertices = [(vertex[0],vertex[1]) for vertex in vor.vertices] # convert to list for easy comprehension
 
     # This is for reverse lookup of ridge_points. Given a point (node ID),
     # it retrieves the ridges that border it
@@ -45,14 +48,45 @@ def initializeTerrainHoneycomb(shore: ShoreModel, hydrology: HydrologyNetwork) -
     createdQs: typing.Dict[int, Q] = { }
     createdEdges: typing.Dict[int, Edge] = { }
 
-    cells = { }
+    cellsEdges = { }
+    cellsDownstreamEdges = { }
     for node in hydrology.allNodes():
         # order the cell edges in counterclockwise order
         point_ridges[node.id] = orderEdges(point_ridges[node.id], node.position, vor, shore)
         orderCreatedEdges(point_ridges[node.id], vor, createdEdges)
 
         # then we have to organize and set up all the edges of the cell
-        cells[node.id] = processRidge(point_ridges[node.id], [ ], createdEdges, createdQs, vor, shore, hydrology)
+        cellsEdges[node.id] = processRidge(point_ridges[node.id], [ ], createdEdges, createdQs, vor, shore, hydrology)
+
+        cellsDownstreamEdges[node.id] = None
+        # find the downstream edge
+        for ridgeID in point_ridges[node.id]:
+            otherNodeID = vor.ridge_points[ridgeID][vor.ridge_points[ridgeID] != node.id][0]
+            if otherNodeID >= len(hydrology):
+                # This is one of the corners, and not a real node
+                continue
+            otherNode = hydrology.node(otherNodeID)
+            if otherNode.parent is not None and otherNode.parent == node.id:
+                # This node is the other node's parent. Therefore this ridge is the downstream ridge of this node
+                cellsDownstreamEdges[node.id] = createdEdges[ridgeID]
+                break
+
+        # Since these edges are chained in a loop, all of the Qs will be covered
+        for edge in cellsEdges[node.id]:
+            edge.Q0.addBorderedNode(node.id)
+
+    cells.vertices = vor.vertices
+    cells.regions = vor.regions
+    cells.point_region = vor.point_region
+    cells.region_point = {vor.point_region[i]: i for i in range(len(vor.point_region))}
+
+    cells.shore = shore
+    cells.hydrology = hydrology
+
+    cells.qs = createdQs
+    cells.edges = createdEdges
+    cells.cellsEdges = cellsEdges
+    cells.cellsDownstreamRidges = cellsDownstreamEdges
 
     return cells
 
