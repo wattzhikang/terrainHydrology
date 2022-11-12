@@ -6,6 +6,8 @@ from tqdm.std import trange
 
 import SaveFile
 
+import DataModel
+
 parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
 )
@@ -60,20 +62,13 @@ realShape = shore.realShape
 with shapefile.Writer(outputFile, shapeType=3) as w:
     w.field('id', 'L')
 
-    for ridge in cells.cellsDownstreamRidges.values():
+    for edge in cells.cellsDownstreamEdges.values():
         coords = [ ]
 
-        if ridge is None:
-            continue
+        # print(edge)
 
-        # print(ridge)
-
-        coords.append(
-            (ridge[0][0], ridge[0][1])
-        )
-        coords.append(
-            (ridge[1][0], ridge[1][1])
-        )
+        coords.append(edge.Q0.position)
+        coords.append(edge.Q1.position)
         
         coords = [(p[0],p[1]) for p in coords]
 
