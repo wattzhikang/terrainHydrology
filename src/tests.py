@@ -61,7 +61,7 @@ class ShapefileShoreTests(unittest.TestCase):
         os.remove('inputShape.dbf')
         os.remove('inputShape.shx')
 
-class ShapefileShoreTests(unittest.TestCase):
+class ImageShoreTests(unittest.TestCase):
     def setUp(self):
         #create shore
         r = 100
@@ -87,6 +87,32 @@ class ShapefileShoreTests(unittest.TestCase):
         self.assertTrue(self.shore.isOnLand((-287,326)))
         self.assertTrue(self.shore.isOnLand((723,-370)))
         self.assertFalse(self.shore.isOnLand((-853,308)))
+
+    def tearDown(self) -> None:
+        os.remove('imageFile.png')
+
+class ImageShoreTests1(unittest.TestCase):
+    def setUp(self):
+        #create shore
+        r = 100
+        image = Image.new('L', (4*r,4*r))
+
+        drawer = ImageDraw.Draw(image)
+
+        #Keep in mind that these are _image_ coordinates
+        drawer.polygon([(150,134),(100,200),(150,286),(250,286),(300,200),(250,134)], 255)
+        #This should work out to (-500,660), (-1000,0), (-500,-860), (500,-860), (1000,0), (500,660)
+
+        image.save('imageFile.png')
+
+        self.shore = ShoreModelImage(93.6, 'imageFile.png')
+
+        self.shore.contour = np.array([(134, 150), (135, 149), (136, 148), (137, 148), (138, 147), (139, 146), (140, 145), (141, 145), (142, 144), (143, 143), (144, 142), (145, 142), (146, 141), (147, 140), (148, 139), (149, 139), (150, 138), (151, 137), (152, 136), (153, 136), (154, 135), (155, 134), (156, 133), (157, 133), (158, 132), (159, 131), (160, 130), (161, 130), (162, 129), (163, 128), (164, 127), (165, 127), (166, 126), (167, 125), (168, 124), (169, 123), (170, 123), (171, 122), (172, 121), (173, 120), (174, 120), (175, 119), (176, 118), (177, 117), (178, 117), (179, 116), (180, 115), (181, 114), (182, 114), (183, 113), (184, 112), (185, 111), (186, 111), (187, 110), (188, 109), (189, 108), (190, 108), (191, 107), (192, 106), (193, 105), (194, 105), (195, 104), (196, 103), (197, 102), (198, 102), (199, 101), (200, 100), (201, 101), (202, 101), (203, 102), (204, 102), (205, 103), (206, 103), (207, 104), (208, 105), (209, 105), (210, 106), (211, 106), (212, 107), (213, 108), (214, 108), (215, 109), (216, 109), (217, 110), (218, 110), (219, 111), (220, 112), (221, 112), (222, 113), (223, 113), (224, 114), (225, 115), (226, 115), (227, 116), (228, 116), (229, 117), (230, 117), (231, 118), (232, 119), (233, 119), (234, 120), (235, 120), (236, 121), (237, 122), (238, 122), (239, 123), (240, 123), (241, 124), (242, 124), (243, 125), (244, 126), (245, 126), (246, 127), (247, 127), (248, 128), (249, 128), (250, 129), (251, 130), (252, 130), (253, 131), (254, 131), (255, 132), (256, 133), (257, 133), (258, 134), (259, 134), (260, 135), (261, 135), (262, 136), (263, 137), (264, 137), (265, 138), (266, 138), (267, 139), (268, 140), (269, 140), (270, 141), (271, 141), (272, 142), (273, 142), (274, 143), (275, 144), (276, 144), (277, 145), (278, 145), (279, 146), (280, 147), (281, 147), (282, 148), (283, 148), (284, 149), (285, 149), (286, 150), (286, 151), (286, 152), (286, 153), (286, 154), (286, 155), (286, 156), (286, 157), (286, 158), (286, 159), (286, 160), (286, 161), (286, 162), (286, 163), (286, 164), (286, 165), (286, 166), (286, 167), (286, 168), (286, 169), (286, 170), (286, 171), (286, 172), (286, 173), (286, 174), (286, 175), (286, 176), (286, 177), (286, 178), (286, 179), (286, 180), (286, 181), (286, 182), (286, 183), (286, 184), (286, 185), (286, 186), (286, 187), (286, 188), (286, 189), (286, 190), (286, 191), (286, 192), (286, 193), (286, 194), (286, 195), (286, 196), (286, 197), (286, 198), (286, 199), (286, 200), (286, 201), (286, 202), (286, 203), (286, 204), (286, 205), (286, 206), (286, 207), (286, 208), (286, 209), (286, 210), (286, 211), (286, 212), (286, 213), (286, 214), (286, 215), (286, 216), (286, 217), (286, 218), (286, 219), (286, 220), (286, 221), (286, 222), (286, 223), (286, 224), (286, 225), (286, 226), (286, 227), (286, 228), (286, 229), (286, 230), (286, 231), (286, 232), (286, 233), (286, 234), (286, 235), (286, 236), (286, 237), (286, 238), (286, 239), (286, 240), (286, 241), (286, 242), (286, 243), (286, 244), (286, 245), (286, 246), (286, 247), (286, 248), (286, 249), (286, 250), (285, 251), (284, 251), (283, 252), (282, 252), (281, 253), (280, 253), (279, 254), (278, 255), (277, 255), (276, 256), (275, 256), (274, 257), (273, 258), (272, 258), (271, 259), (270, 259), (269, 260), (268, 260), (267, 261), (266, 262), (265, 262), (264, 263), (263, 263), (262, 264), (261, 265), (260, 265), (259, 266), (258, 266), (257, 267), (256, 267), (255, 268), (254, 269), (253, 269), (252, 270), (251, 270), (250, 271), (249, 272), (248, 272), (247, 273), (246, 273), (245, 274), (244, 274), (243, 275), (242, 276), (241, 276), (240, 277), (239, 277), (238, 278), (237, 278), (236, 279), (235, 280), (234, 280), (233, 281), (232, 281), (231, 282), (230, 283), (229, 283), (228, 284), (227, 284), (226, 285), (225, 285), (224, 286), (223, 287), (222, 287), (221, 288), (220, 288), (219, 289), (218, 290), (217, 290), (216, 291), (215, 291), (214, 292), (213, 292), (212, 293), (211, 294), (210, 294), (209, 295), (208, 295), (207, 296), (206, 297), (205, 297), (204, 298), (203, 298), (202, 299), (201, 299), (200, 300), (199, 299), (198, 298), (197, 298), (196, 297), (195, 296), (194, 295), (193, 295), (192, 294), (191, 293), (190, 292), (189, 292), (188, 291), (187, 290), (186, 289), (185, 289), (184, 288), (183, 287), (182, 286), (181, 286), (180, 285), (179, 284), (178, 283), (177, 283), (176, 282), (175, 281), (174, 280), (173, 280), (172, 279), (171, 278), (170, 277), (169, 277), (168, 276), (167, 275), (166, 274), (165, 273), (164, 273), (163, 272), (162, 271), (161, 270), (160, 270), (159, 269), (158, 268), (157, 267), (156, 267), (155, 266), (154, 265), (153, 264), (152, 264), (151, 263), (150, 262), (149, 261), (148, 261), (147, 260), (146, 259), (145, 258), (144, 258), (143, 257), (142, 256), (141, 255), (140, 255), (139, 254), (138, 253), (137, 252), (136, 252), (135, 251), (134, 250), (134, 249), (134, 248), (134, 247), (134, 246), (134, 245), (134, 244), (134, 243), (134, 242), (134, 241), (134, 240), (134, 239), (134, 238), (134, 237), (134, 236), (134, 235), (134, 234), (134, 233), (134, 232), (134, 231), (134, 230), (134, 229), (134, 228), (134, 227), (134, 226), (134, 225), (134, 224), (134, 223), (134, 222), (134, 221), (134, 220), (134, 219), (134, 218), (134, 217), (134, 216), (134, 215), (134, 214), (134, 213), (134, 212), (134, 211), (134, 210), (134, 209), (134, 208), (134, 207), (134, 206), (134, 205), (134, 204), (134, 203), (134, 202), (134, 201), (134, 200), (134, 199), (134, 198), (134, 197), (134, 196), (134, 195), (134, 194), (134, 193), (134, 192), (134, 191), (134, 190), (134, 189), (134, 188), (134, 187), (134, 186), (134, 185), (134, 184), (134, 183), (134, 182), (134, 181), (134, 180), (134, 179), (134, 178), (134, 177), (134, 176), (134, 175), (134, 174), (134, 173), (134, 172), (134, 171), (134, 170), (134, 169), (134, 168), (134, 167), (134, 166), (134, 165), (134, 164), (134, 163), (134, 162), (134, 161), (134, 160), (134, 159), (134, 158), (134, 157), (134, 156), (134, 155), (134, 154), (134, 153), (134, 152), (134, 151)])
+        self.shore.imgray.shape = (400,400)
+
+    def test_isVertex49OnLand(self) -> None:
+        print(self.shore.distanceToShore((5534.5,-6661.6)))
+        self.assertFalse(self.shore.isOnLand((5534.5,-6661.6)))
 
     def tearDown(self) -> None:
         os.remove('imageFile.png')
@@ -407,8 +433,9 @@ class HoneycombTests(unittest.TestCase):
 
         createdEdges = { }
         createdQs = { }
+        shoreQs = [ ]
 
-        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, vor, shore, hydrology)
+        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, shoreQs, vor, shore, hydrology)
 
         self.assertEqual(len(processedEdges), 6)
         self.assertEqual(processedEdges[0].Q0.position, vor.vertices[52])
@@ -486,6 +513,7 @@ class HoneycombTests(unittest.TestCase):
 
         createdEdges = { }
         createdQs = { }
+        shoreQs = [ ]
 
         intersection: Point = Math.edgeIntersection(
             TerrainHoneycombFunctions.getVertex0(32, vor),
@@ -496,7 +524,7 @@ class HoneycombTests(unittest.TestCase):
         self.assertAlmostEqual(intersection[0], 74.11, delta=1.0)
         self.assertAlmostEqual(intersection[1], -79.72, delta=1.0)
 
-        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, vor, shore, hydrology)
+        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, shoreQs, vor, shore, hydrology)
 
         self.assertEqual(len(processedEdges),8)
 
@@ -590,6 +618,7 @@ class HoneycombTests(unittest.TestCase):
             93: edge93,
             20: edge20
         }
+        shoreQs = [ ]
 
         intersection: Point = Math.edgeIntersection(
             TerrainHoneycombFunctions.getVertex0(32, vor),
@@ -600,7 +629,7 @@ class HoneycombTests(unittest.TestCase):
         self.assertAlmostEqual(intersection[0], 74.11, delta=1.0)
         self.assertAlmostEqual(intersection[1], -79.72, delta=1.0)
 
-        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, vor, shore, hydrology)
+        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, shoreQs, vor, shore, hydrology)
 
         self.assertEqual(len(processedEdges),8)
 
@@ -687,6 +716,7 @@ class HoneycombTests(unittest.TestCase):
 
         createdQs = { }
         createdEdges = { }
+        shoreQs = [ ]
 
         intersection: Point = Math.edgeIntersection(
             TerrainHoneycombFunctions.getVertex0(32, vor),
@@ -697,7 +727,7 @@ class HoneycombTests(unittest.TestCase):
         self.assertAlmostEqual(intersection[0], 74.2, delta=1.0)
         self.assertAlmostEqual(intersection[1], -79.7, delta=1.0)
 
-        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, vor, shore, hydrology)
+        processedEdges = TerrainHoneycombFunctions.processRidge(edgeIDs, [ ], createdEdges, createdQs, shoreQs, vor, shore, hydrology)
 
         self.assertEqual(len(processedEdges),6)
 
@@ -801,6 +831,7 @@ class HoneycombTests(unittest.TestCase):
 
         createdQs: typing.Dict[int, Q] = { }
         createdEdges: typing.Dict[int, Edge] = { }
+        shoreQs: typing.List[Q] = [ ]
 
         cells = { }
         for node in hydrology.allNodes():
@@ -809,7 +840,7 @@ class HoneycombTests(unittest.TestCase):
             TerrainHoneycombFunctions.orderCreatedEdges(point_ridges[node.id], vor, createdEdges)
 
             # then we have to organize and set up all the edges of the cell
-            cells[node.id] = TerrainHoneycombFunctions.processRidge(point_ridges[node.id], [ ], createdEdges, createdQs, vor, shore, hydrology)
+            cells[node.id] = TerrainHoneycombFunctions.processRidge(point_ridges[node.id], [ ], createdEdges, createdQs, shoreQs, vor, shore, hydrology)
 
         self.assertEqual(5, len(cells[35]))
         self.assertTrue(createdEdges[92] in cells[35])

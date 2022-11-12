@@ -150,7 +150,7 @@ class ShoreModelImage(ShoreModel):
         if gammaFileName is not None and binaryFile is None:
             self._initFromGamma(resolution, gammaFileName)
         elif binaryFile is not None and gammaFileName is None:
-            self._initFromBinary(binaryFile)
+            self._initFromBinary(resolution, binaryFile)
         else:
             raise ValueError('You must provide appropriate arguments')
     def _initFromGamma(self, resolution: float, gammaFileName: str) -> None:
@@ -197,6 +197,7 @@ class ShoreModelImage(ShoreModel):
                 struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0],
                 struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0]
             ))
+        self.contour = np.array(self.contour, dtype=np.dtype(np.float32))
         self.pointTree = cKDTree(self.contour)
     def distanceToShore(self, loc: Point) -> float:
         """Gets the distance between a point and the shore
@@ -282,8 +283,8 @@ class HydroPrimitive:
     :cvar flow: The flow rate of water draining out of this cell (including flow from ancestor cells) in cubic meters per second
     :vartype flow: float
     """
-    def __init__(self, id: int, loc: typing.Tuple[float,float], elevation: float, priority: int, parent: int):
-        self.id = id
+    def __init__(self, nodeID: int, loc: typing.Tuple[float,float], elevation: float, priority: int, parent: int):
+        self.id = nodeID
         self.position = loc
         self.elevation = elevation
         self.priority = priority
@@ -756,118 +757,58 @@ class TerrainHoneycomb:
         self.shore = shore
         self.hydrology = hydrology
 
-        points = [node.position for node in hydrology.allNodes()]
-        points.append((0,0))
-        points.append((0,shore.realShape[1]))
-        points.append((shore.realShape[0],0))
-        points.append((shore.realShape[0],shore.realShape[1]))
-        
-        self.vor = Voronoi(points,qhull_options='Qbb Qc Qz Qx')
-
-        self.resolution = resolution
-        self.point_region = [ ]
-        numPoints = readValue('!Q', binaryFile)
-        for i in range(numPoints):
-            self.point_region.append(readValue('!Q', binaryFile))
-
-        self.region_point = {self.point_region[i]: i for i in range(len(self.point_region))}
-
-        self.regions = [ ]
-        numRegions = readValue('!Q', binaryFile)
-        for r in range(numRegions):
-            regionArray = [ ]
-            numVertices = readValue('!B', binaryFile)
-            for v in range(numVertices):
-                idx = readValue('!Q', binaryFile)
-                if idx == 0xffffffffffffffff:
-                    idx = -1
-                regionArray.append(idx)
-            self.regions.append(regionArray)
-        
-        self.vertices = [ ]
-        numVertices = readValue('!Q', binaryFile)
-        for i in range(numVertices):
-            self.vertices.append((readValue('!f', binaryFile),readValue('!f', binaryFile)))
-
-        self.qs = [ ]
+        qs = { }
         numQs = readValue('!Q', binaryFile)
         for i in range(numQs):
-            if readValue('!B', binaryFile) == 0x00:
-                self.qs.append(None)
-                continue
-            position = (readValue('!f', binaryFile),readValue('!f', binaryFile))
-            nodeIdxes = [ ]
-            numBorders = readValue('!B', binaryFile)
-            for j in range(numBorders):
-                nodeIdxes.append(readValue('!Q', binaryFile))
-            voronoiIdx = readValue('!Q', binaryFile)
-            q = Q(position, nodeIdxes, voronoiIdx)
-            q.elevation = readValue('!f', binaryFile)
-            self.qs.append(q)
+            saveID = readValue('!Q', binaryFile)
+            xLoc = readValue('!f', binaryFile)
+            yLoc = readValue('!f', binaryFile)
+            elevation = readValue('!f', binaryFile)
 
-        self.cellsRidges = { }
-        numCells = readValue('!Q', binaryFile)
-        for i in range(numCells):
-            cellID = readValue('!Q', binaryFile)
-            numRidges = readValue('!B', binaryFile)
-            self.cellsRidges[cellID] = [ ]
-            for j in range(numRidges):
-                if readValue('!B', binaryFile) < 2:
-                    self.cellsRidges[cellID].append( ( self.qs[readValue('!Q', binaryFile)],) )
-                else:
-                    self.cellsRidges[cellID].append((
-                        self.qs[readValue('!Q', binaryFile)],
-                        self.qs[readValue('!Q', binaryFile)]
-                    ))
-        
-        self.cellsDownstreamRidges = { }
-        numCells = readValue('!Q', binaryFile)
-        for i in range(numCells):
-            cellID = readValue('!Q', binaryFile)
-            if readValue('!B', binaryFile) == 0xff:
-                self.cellsDownstreamRidges[cellID] = None
+            borderNodes = [ ]
+            numBorderNodes = readValue('!B', binaryFile)
+            for j in range(numBorderNodes):
+                borderNodes.append(readValue('!Q', binaryFile))
+
+            q = Q((xLoc,yLoc))
+            q.elevation = elevation
+            q.nodes = borderNodes
+
+            qs[saveID] = q
+
+        edges = { }
+        numEdges = readValue('!Q', binaryFile)
+        for i in range(numEdges):
+            saveID = readValue('!Q', binaryFile)
+            q0ID = readValue('!Q', binaryFile)
+            q1ID = readValue('!Q', binaryFile)
+
+            bitmap = readValue('!B', binaryFile)
+            hasRiver = True if (bitmap & 0x4) == 0x4 else False
+            isShore = True if (bitmap & 0x2) == 0x2 else False
+            hasShoreSegment = True if (bitmap & 0x1) == 0x1 else False
+
+            if hasShoreSegment:
+                segment0 = readValue('!L', binaryFile)
+                segment1 = readValue('!L', binaryFile)
+
+                edges[saveID] = Edge(qs[q0ID],qs[q1ID],hasRiver,isShore,(segment0,segment1))
             else:
-                end0x = readValue('!f', binaryFile)
-                end0y = readValue('!f', binaryFile)
-                end1x = readValue('!f', binaryFile)
-                end1y = readValue('!f', binaryFile)
-                self.cellsDownstreamRidges[cellID] = (
-                    (end0x, end0y), (end1x, end1y)
-                )
-    def vor_region_id(self, node: int) -> int:
-        """Returns the index of the *voronoi region*
+                edges[saveID] = Edge(qs[q0ID],qs[q1ID],hasRiver,isShore)
 
-        This method is useful because the index of the voronoi region is not the same
-        as the ID of the cell it is based on.
+        self.qs = list(qs.values())
 
-        :param node: The ID of the node/cell
-        :type node: int
-
-        :return: The ID of the *voronoi region* (or, cell) associated with that node
-        :rtype: int
-
-        .. note::
-           This method is for internal use. If you are using it from outside this
-           class, your approach is definitely breaking a key design principle.
-        """
-        return self.point_region[node]
-    def id_vor_region(self, regionID: int) -> int:
-        """ Returns the index of the *node*
-
-        This method is the opposite of :func:`TerrainHoneycomb.vor_region_id`
-
-        :param regionID: The voronoi region id
-        :type regionID: int
-        :return: The ID of the hydrology node that this region corresponds to. If this region is not associated with an input point, None is returned
-        :rtype: int
-
-        .. note::
-            This method is also for internal use
-        """
-        try:
-            return self.region_point[regionID]
-        except:
-            return None # This region does not correspond to an input point
+        self.cellsEdges = { }
+        self.cellsDownstreamEdges = { }
+        for cellID in range(len(hydrology)):
+            numEdges = readValue('!B', binaryFile)
+            if readValue('!B', binaryFile) == 0x1:
+                self.cellsDownstreamEdges[cellID] = edges[readValue('!Q', binaryFile)]
+            
+            edgeList = [ ]
+            for i in range(numEdges):
+                edgeList.append(edges[readValue('!Q', binaryFile)])
+            self.cellsEdges[cellID] = edgeList
     def ridgePositions(self, node: int) -> typing.List[typing.Tuple[float,float]]:
         """Gets the position of each vertex that makes up the cell
 
@@ -923,7 +864,7 @@ class TerrainHoneycomb:
         :return: List of Q instances
         :rtype: list[Q]
         """
-        ridges = self.cellEdges[node]
+        ridges = self.cellsEdges[node]
         return [ridge.Q0 for ridge in ridges]
     def allQs(self) -> typing.List[Q]:
         """Simply returns all Qs of the land
@@ -933,7 +874,7 @@ class TerrainHoneycomb:
         :return: All Qs of the land
         :rtype: list[Q]
         """
-        return self.qs.values()
+        return self.qs.copy()
     def boundingBox(self, n: int) -> typing.Tuple[float,float,float,float]:
         """Returns the measurements for a bounding box that would contain a cell
 
@@ -986,7 +927,9 @@ class TerrainHoneycomb:
         :rtype: list[tuple]
         """
         return [(edge.Q0, edge.Q1) for edge in self.cellsEdges[n] if not edge.hasRiver]
-    def cellOutflowRidge(self, n: int) -> typing.Optional[typing.Tuple[int,int]]:
+    def cellEdges(self, cellID: int) -> Edge:
+        return self.cellsEdges[cellID]
+    def cellOutflowRidge(self, n: int) -> Edge:
         """Returns the ridge through which the river flows out of the cell
 
         .. note::
@@ -1003,7 +946,7 @@ class TerrainHoneycomb:
         :return: The IDs of the vertices that define the outflow ridge, if both are on land
         :rtype: tuple[int,int] | None
         """
-        return self.cellsDownstreamRidges[n]
+        return self.cellsDownstreamRidges[n] if n in self.cellsDownstreamRidges else None
     def nodeID(self, point: typing.Tuple[float,float]) -> int:
         """Returns the id of the node/cell in which the point is located
 
@@ -1018,7 +961,7 @@ class TerrainHoneycomb:
         for id in self.hydrology.query_ball_point(point, self.edgeLength):
             # if this point is within the voronoi region of one of those nodes,
             # then that is the point's node
-            if self.isInCell(id):
+            if self.isInCell(point, id):
                 return id
         return None
 

@@ -1,11 +1,15 @@
 import struct
 import os
 
+import typing
+
 import DataModel
+
+currentVersion = 3
 
 def writeDataModel(path: str, edgeLength: float, shore: DataModel.ShoreModel, hydrology: DataModel.HydrologyNetwork=None, cells: DataModel.TerrainHoneycomb=None, Ts: DataModel.Terrain=None):
     with open(path, 'wb') as file:
-        file.write(struct.pack('!H', 2)) # version number. Increment every time a breaking change is made
+        file.write(struct.pack('!H', currentVersion)) # version number. Increment every time a breaking change is made
 
         ## Contents ##
         tableOfContents = {
@@ -132,6 +136,7 @@ def writeDataModel(path: str, edgeLength: float, shore: DataModel.ShoreModel, hy
         print(f"\tHydrology nodes: {sectionSize} bytes")
         tableOfContents['honeycomb'] += sectionSize
 
+
         ## TerrainHoneycomb data structure ##
 
         if cells is None:
@@ -150,112 +155,83 @@ def writeDataModel(path: str, edgeLength: float, shore: DataModel.ShoreModel, hy
 
         tableOfContents['primitives'] = tableOfContents['honeycomb']
 
-        sectionSize = 0
+        #compile list of all primitives
+        createdQs: typing.Dict[int, DataModel.Q] = { }
+        createdEdges: typing.Dict[int, DataModel.Edge] = { }
+        cellsEdges: typing.Dict[int, typing.List[int]] = { }
+        downstreamEdges: typing.Dict[int, int] = { }
+        for cellID in range(len(hydrology)):
+            for edge in cells.cellEdges(cellID):
+                if id(edge.Q0) not in createdQs:
+                    createdQs[id(edge.Q0)] = edge.Q0
+                if id(edge.Q1) not in createdQs:
+                    createdQs[id(edge.Q1)] = edge.Q1
 
-        # write point_region
-        file.write(struct.pack('!Q', len(cells.point_region)))
-        sectionSize += struct.calcsize('!Q')
-        for idx in cells.point_region:
-            if idx != -1:
-                file.write(struct.pack('!Q', idx))
-                sectionSize += struct.calcsize('!Q')
+                if id(edge) not in createdEdges:
+                    createdEdges[id(edge)] = edge
 
-        print(f"\tPoint_Region: {sectionSize} bytes")
-        tableOfContents['primitives'] += sectionSize
-
-        # write regions array
-
-        sectionSize = 0
-
-        file.write(struct.pack('!Q', len(cells.regions)))
-        sectionSize += struct.calcsize('!Q')
-        for region in cells.regions:
-            file.write(struct.pack('!B', len(region)))
-            sectionSize += struct.calcsize('!B')
-            for point in region:
-                if point != -1:
-                    file.write(struct.pack('!Q', point))
+                if cellID not in cellsEdges:
+                    cellsEdges[cellID] = [ id(edge) ]
                 else:
-                    file.write(struct.pack('!Q', 0xffffffffffffffff))
+                    cellsEdges[cellID].append(id(edge))
+
+            outflowRidge = cells.cellOutflowRidge(cellID)
+            if outflowRidge is not None:
+                downstreamEdges[cellID] = id(outflowRidge)
+
+        # list of Qs
+        sectionSize = 0
+        file.write(struct.pack('!Q', len(createdQs)))
+        for saveID, q in createdQs.items():
+            file.write(struct.pack('!Q', saveID))
+            file.write(struct.pack('!f', q.position[0]))
+            file.write(struct.pack('!f', q.position[1]))
+            file.write(struct.pack('!f', q.elevation))
+            file.write(struct.pack('!B', len(q.nodes)))
+            for node in q.nodes:
+                file.write(struct.pack('!Q', node))
                 sectionSize += struct.calcsize('!Q')
-
-        print(f"\tRegions: {sectionSize} bytes")
-        tableOfContents['primitives'] += sectionSize
-
-        # write vertices
-        sectionSize = 0
-        file.write(struct.pack('!Q', len(cells.vertices)))
-        sectionSize += struct.calcsize('!Q')
-        for vertex in cells.vertices:
-            file.write(struct.pack('!f', vertex[0]))
-            file.write(struct.pack('!f', vertex[1]))
-            sectionSize += struct.calcsize('!f')*2
-
-        print(f"\tVertices: {sectionSize} bytes")
-        tableOfContents['primitives'] += sectionSize
-
-        # qs
-        sectionSize = 0
-        file.write(struct.pack('!Q', len(cells.qs)))
-        sectionSize += struct.calcsize('!Q')
-        for q in cells.qs:
-            if q is None:
-                file.write(struct.pack('!B', 0x00))
-                sectionSize += struct.calcsize('!B')
-            else:
-                file.write(struct.pack('!B', 0xff))
-                file.write(struct.pack('!f', q.position[0]))
-                file.write(struct.pack('!f', q.position[1]))
-                file.write(struct.pack('!B', len(q.nodes)))
-                for node in q.nodes:
-                    file.write(struct.pack('!Q', node))
-                    sectionSize += struct.calcsize('!Q')
-                file.write(struct.pack('!Q', q.vorIndex))
-                file.write(struct.pack('!f', q.elevation))
-                sectionSize += struct.calcsize('!Q') + struct.calcsize('!f')*3 + struct.calcsize('!B')*2
+            sectionSize += struct.calcsize('!Q') + struct.calcsize('!f')*3 + struct.calcsize('!B')
 
         print(f"\tQs: {sectionSize} bytes")
         tableOfContents['primitives'] += sectionSize
 
-        # cellsRidges
+        # list of edges
         sectionSize = 0
-        file.write(struct.pack('!Q', len(cells.cellsRidges)))
-        sectionSize += struct.calcsize('!Q')
-        for cellID in cells.cellsRidges:
-            file.write(struct.pack('!Q', cellID))
-            file.write(struct.pack('!B', len(cells.cellsRidges[cellID])))
-            for ridge in cells.cellsRidges[cellID]:
-                file.write(struct.pack('!B', len(ridge)))
-                file.write(struct.pack('!Q', ridge[0].vorIndex))
-                sectionSize += struct.calcsize('!Q') + struct.calcsize('!B')
-                if len(ridge) > 1:
-                    file.write(struct.pack('!Q', ridge[1].vorIndex))
-                    sectionSize += struct.calcsize('!Q')
-            sectionSize += struct.calcsize('!Q') + struct.calcsize('!B')
+        file.write(struct.pack('!Q', len(createdEdges)))
+        for saveID, edge in createdEdges.items():
+            file.write(struct.pack('!Q', saveID))
+            file.write(struct.pack('!Q', id(edge.Q0)))
+            file.write(struct.pack('!Q', id(edge.Q1)))
+            #bitmap
+            file.write(struct.pack(
+                '!B',
+                (0x4 if edge.hasRiver else 0x0) | (0x2 if edge.isShore else 0x0) | (0x1 if edge.shoreSegment is not None else 0x0)
+            ))
+            if edge.shoreSegment is not None:
+                file.write(struct.pack('!L', edge.shoreSegment[0]))
+                file.write(struct.pack('!L', edge.shoreSegment[1]))
+                sectionSize += struct.calcsize('!L')*2
+            sectionSize += struct.calcsize('!Q')*3 + struct.calcsize('!B')
 
-        print(f"\tcellsRidges: {sectionSize} bytes")
+        print(f"\tEdges: {sectionSize} bytes")
         tableOfContents['primitives'] += sectionSize
 
-        # cellsDownstreamRidges
         sectionSize = 0
-        file.write(struct.pack('!Q', len(cells.cellsDownstreamRidges)))
-        sectionSize += struct.calcsize('!Q')
-        for cellID in cells.cellsDownstreamRidges:
-            file.write(struct.pack('!Q', cellID))
-            sectionSize += struct.calcsize('!Q')
-            if cells.cellsDownstreamRidges[cellID] is not None:
-                file.write(struct.pack('!B', 0x00))
-                file.write(struct.pack('!f', cells.cellsDownstreamRidges[cellID][0][0]))
-                file.write(struct.pack('!f', cells.cellsDownstreamRidges[cellID][0][1]))
-                file.write(struct.pack('!f', cells.cellsDownstreamRidges[cellID][1][0]))
-                file.write(struct.pack('!f', cells.cellsDownstreamRidges[cellID][1][1]))
-                sectionSize += struct.calcsize('!B') + struct.calcsize('!f')*4
-            else:
-                file.write(struct.pack('!B', 0xff))
-                sectionSize += struct.calcsize('!B')
+        for cellID in range(len(hydrology)):
+            file.write(struct.pack('!B', len(cellsEdges[cellID])))
+            file.write(struct.pack('!B', 0x1 if cellID in downstreamEdges else 0x0))
+            if cellID in downstreamEdges:
+                file.write(struct.pack('!Q', downstreamEdges[cellID]))
+                sectionSize += struct.calcsize('!Q')
+            for edgeID in cellsEdges[cellID]:
+                file.write(struct.pack('!Q', edgeID))
+                sectionSize += struct.calcsize('!Q')
+            sectionSize += struct.calcsize('!B')*2
 
-        print(f"\tcellsDownstreamRidges {sectionSize} bytes")
+        print(f"\tCells Edges: {sectionSize} bytes")
         tableOfContents['primitives'] += sectionSize
+
 
         ## Terrain primitives ##
 
@@ -367,7 +343,7 @@ def writeToTerrainModule(pipe, shore, edgeLength, hydrology, cells, Ts):
 def readDataModel(path):
     with open(path, 'rb') as file:
         versionNumber = struct.unpack('!H', file.read(struct.calcsize('!H')))[0]
-        if versionNumber != 2:
+        if versionNumber != currentVersion:
             raise ValueError('This file was created with a previous version of the hydrology script. It is not compatible')
 
         # Just ignore the TOC for now
@@ -377,7 +353,12 @@ def readDataModel(path):
         rasterResolution = struct.unpack('!f', file.read(struct.calcsize('!f')))[0]
         edgeLength = struct.unpack('!f', file.read(struct.calcsize('!f')))[0]
 
-        shore = DataModel.ShoreModel(rasterResolution, binaryFile=file)
+        isShapefile = True if struct.unpack('!B', file.read(struct.calcsize('!B')))[0] == 1 else False
+        shore = None
+        if isShapefile:
+            shore = DataModel.ShoreModelShapefile(binaryFile=file)
+        else:
+            shore = DataModel.ShoreModelImage(rasterResolution, binaryFile=file)
         hydrology = DataModel.HydrologyNetwork(binaryFile=file)
         cells = DataModel.TerrainHoneycomb(resolution=rasterResolution, edgeLength=edgeLength, shore=shore, hydrology=hydrology, binaryFile=file)
         terrain = DataModel.Terrain(binaryFile=file)
