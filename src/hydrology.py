@@ -399,7 +399,6 @@ print('Complete')
 # DEBUG
 # code =  testcodegenerator.hydrologyToCode(hydrology)
 # code += testcodegenerator.terrainHoneycombToCode(cells)
-# code += testcodegenerator.qElevationsToCode(cells)
 # code += testcodegenerator.hydrologyAttributesToCode(hydrology)
 # code += testcodegenerator.riversToCode(hydrology)
 

@@ -72,14 +72,6 @@ def computePrimitiveElevation(t: T, shore: ShoreModel, hydrology: HydrologyNetwo
     closestRdist = None
     ridgeElevation = None
     for ridge in ridges:
-        if len(ridge) < 2:
-            q0 = ridge[0]
-            dist = Math.distance(q0.position,t.position)
-            if closestRdist is None or dist < closestRdist:
-                closestRdist = dist
-                ridgeElevation = q0.elevation
-            continue
-        
         q0 = ridge[0]
         q1 = ridge[1]
         dist, isToEndpoint = Math.point_segment_distance_is_endpoint(
@@ -104,8 +96,6 @@ def computePrimitiveElevation(t: T, shore: ShoreModel, hydrology: HydrologyNetwo
                 print(f'That math domain error has occured')
                 print(f'q0.elevation: {q0.elevation}, q0.position: {q0.position}, t.positon: {t.position}, dist: {dist}, q1.position: {q1.position}, q1.elevation: {q1.elevation}')
                 exit()
-    
-    # breakpoint()
     
     # see if the seeeeee is closer
     dist_gamma = shore.distanceToShore(t.position)

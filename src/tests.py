@@ -992,11 +992,11 @@ class TerrainTests(unittest.TestCase):
         self.edgeLength, self.shore, self.hydrology, self.cells = testcodegenerator.getPredefinedObjects0()
 
     def test_test(self) -> None:
-        t = T((1519,-734), 34)
+        t = T((1909,-766), 34)
 
         z = computePrimitiveElevation(t, self.shore, self.hydrology, self.cells)
         
-        self.assertAlmostEqual(z, 933.975, delta=10.0)
+        self.assertAlmostEqual(z, 1140, delta=10.0)
 
     def tearDown(self) -> None:
         os.remove('imageFile.png')
