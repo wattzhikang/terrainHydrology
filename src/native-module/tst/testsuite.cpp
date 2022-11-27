@@ -930,8 +930,8 @@ namespace
     }
     TEST(TerrainTests, DistanceTestI)
     {
-        Q q0(Point(97360.9219,30977.2168),1239.06372,1084,std::vector<size_t>());
-        Q q1(Point(97604.7656,31752.8867),1200.42749,1087,std::vector<size_t>());
+        Q q0(Point(97360.9219,30977.2168),1239.06372,std::vector<size_t>());
+        Q q1(Point(97604.7656,31752.8867),1200.42749,std::vector<size_t>());
         T t(Point(96373.5156,31288.375),800);
 
         float dist = distance(t.getLoc(),q0.getPosition());
@@ -965,8 +965,8 @@ namespace
     }
     TEST(TerrainTest, LERPRidgeTest)
     {
-        Q q0(Point(97360.9219,30977.2168),1239.06372,1084,std::vector<size_t>());
-        Q q1(Point(97604.7656,31752.8867),1200.42749,1087,std::vector<size_t>());
+        Q q0(Point(97360.9219,30977.2168),1239.06372,std::vector<size_t>());
+        Q q1(Point(97604.7656,31752.8867),1200.42749,std::vector<size_t>());
         T t(Point(96373.5156,31288.375),800);
         float dist = 1035.27661;
 

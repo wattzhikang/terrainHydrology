@@ -90,23 +90,12 @@ float computePrimitiveElevation
     is closest to, and to interpolate the elevation of the point
     along the ridge that the primitive corresponds to.
   */
-  std::vector<Ridge> ridges = cells.getCellRidges(t.getCellID());
+  std::vector<Ridge*> ridges = cells.getCellRidges(t.getCellID());
   float closestRidgeDist = -1.0;
   float ridgeElevation = -1.0;
-  for (Ridge& ridge : ridges)
+  for (Ridge *ridgePtr : ridges)
   {
-    if (ridge.getSize() < 2)
-    {
-      Q *q = ridge.getPoint0();
-      float dist = distance(q->getPosition(), t.getLoc());
-      if (closestRidgeDist < 0 || dist < closestRidgeDist)
-      {
-        closestRidgeDist = dist;
-        ridgeElevation = ridge.getPoint0()->getElevation();
-      }
-      continue;
-    }
-
+    Ridge ridge = *ridgePtr;
     Q *q0, *q1;
     q0 = ridge.getPoint0();
     q1 = ridge.getPoint1();

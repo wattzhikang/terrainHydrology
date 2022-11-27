@@ -2,34 +2,38 @@
 
 TerrainHoneycomb::~TerrainHoneycomb()
 {
-  for (Q *q : allQs)
-  {
-    if (q != NULL)
-    {
-      delete q;
-    }
+  for (auto const& [index, ridge] : allRidges) {
+    delete ridge;
+  }
+
+  for (auto const& [index, q] : allQs) {
+    delete q;
   }
 }
 
 void TerrainHoneycomb::dumpQ
 (
-  Point position, float elevation, size_t vorIndex,
-  std::vector<size_t> neighbors
+  size_t index, Point position, float elevation,
+  std::vector<size_t> nodes
 )
 {
-  Q *q = new Q(position, elevation, vorIndex, neighbors);
+  Q *q = new Q(position, elevation, nodes);
 
-  allQs.push_back(q);
+  allQs[index] = q;
 }
 
-void TerrainHoneycomb::dumpNull()
+void TerrainHoneycomb::dumpRidge(
+  size_t index, size_t Q0index, size_t Q1index
+)
 {
-  allQs.push_back(NULL);
+  Ridge *ridge = new Ridge(allQs[Q0index], allQs[Q1index]);
+
+  allRidges[index] = ridge;
 }
 
-void TerrainHoneycomb::dumpCellRidge(size_t cellID, Ridge ridge)
+void TerrainHoneycomb::dumpCellRidge(size_t cellID, size_t ridgeIdx)
 {
-  cellRidges[cellID].push_back(ridge);
+  cellRidges[cellID].push_back(allRidges[ridgeIdx]);
 }
 
 Q* TerrainHoneycomb::getQ(size_t idx)
@@ -37,7 +41,7 @@ Q* TerrainHoneycomb::getQ(size_t idx)
   return allQs[idx];
 }
 
-std::vector<Ridge> TerrainHoneycomb::getCellRidges(size_t nodeID)
+std::vector<Ridge*> TerrainHoneycomb::getCellRidges(size_t nodeID)
 {
   return cellRidges[nodeID];
 }

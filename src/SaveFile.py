@@ -4,6 +4,7 @@ import os
 import typing
 
 import DataModel
+from DataModel import ShoreModel, HydrologyNetwork, TerrainHoneycomb, Terrain
 
 currentVersion = 3
 
@@ -271,7 +272,7 @@ def writeDataModel(path: str, edgeLength: float, shore: DataModel.ShoreModel, hy
 
         file.close()
 
-def writeToTerrainModule(pipe, shore, edgeLength, hydrology, cells, Ts):
+def writeToTerrainModule(pipe, shore, edgeLength, hydrology, cells: TerrainHoneycomb, Ts):
     pipe.write(struct.pack('!f', 0))
     pipe.write(struct.pack('!f', 0))
     pipe.write(struct.pack('!f', shore.realShape[0]))
@@ -308,32 +309,58 @@ def writeToTerrainModule(pipe, shore, edgeLength, hydrology, cells, Ts):
         pipe.write(struct.pack('!f', node.inheritedWatershed))
         pipe.write(struct.pack('!f', node.flow if node.parent is not None else 0))
 
+    #compile all primitives
+    createdQs: typing.Dict[int, DataModel.Q] = { }
+    createdEdges: typing.Dict[int, DataModel.Edge] = { }
+    cellsRidges: typing.Dict[int, typing.List[int]] = { }
+    downstreamEdges: typing.Dict[int, int] = { }
+    for cellID in range(len(hydrology)):
+        for edge in cells.cellRidges(cellID):
+            if id(edge.Q0) not in createdQs:
+                createdQs[id(edge.Q0)] = edge.Q0
+            if id(edge.Q1) not in createdQs:
+                createdQs[id(edge.Q1)] = edge.Q1
+
+            if id(edge) not in createdEdges:
+                createdEdges[id(edge)] = edge
+
+            if cellID not in cellsRidges:
+                cellsRidges[cellID] = [ ]
+            # we only want actual ridges
+            if not (edge.isShore or edge.hasRiver):
+                cellsRidges[cellID].append(id(edge))
+
+        outflowRidge = cells.cellOutflowRidge(cellID)
+        if outflowRidge is not None:
+            downstreamEdges[cellID] = id(outflowRidge)
+
     # qs
-    pipe.write(struct.pack('!Q', len(cells.qs)))
-    for q in cells.qs:
-        if q is None:
-            pipe.write(struct.pack('!B', 0x00))
-        else:
-            pipe.write(struct.pack('!B', 0xff))
-            pipe.write(struct.pack('!f', q.position[0]))
-            pipe.write(struct.pack('!f', q.position[1]))
-            pipe.write(struct.pack('!f', q.elevation))
-            pipe.write(struct.pack('!Q', q.vorIndex))
-            pipe.write(struct.pack('!B', len(q.nodes)))
-            for node in q.nodes:
-                pipe.write(struct.pack('!Q', node))
+    pipe.write(struct.pack('!Q', len(createdQs)))
+    for saveID, q in createdQs.items():
+        pipe.write(struct.pack('!Q', saveID))
+        pipe.write(struct.pack('!f', q.position[0]))
+        pipe.write(struct.pack('!f', q.position[1]))
+        pipe.write(struct.pack('!f', q.elevation))
+        pipe.write(struct.pack('!B', len(q.nodes)))
+        for node in q.nodes:
+            pipe.write(struct.pack('!Q', node))
+
+    # list of edges
+    pipe.write(struct.pack('!Q', len(createdEdges)))
+    for saveID, edge in createdEdges.items():
+        pipe.write(struct.pack('!Q', saveID))
+        pipe.write(struct.pack('!Q', id(edge.Q0)))
+        pipe.write(struct.pack('!Q', id(edge.Q1)))
 
     # cellsRidges
-    pipe.write(struct.pack('!Q', len(cells.cellsRidges)))
+    pipe.write(struct.pack('!Q', len(cellsRidges)))
     for cellID in cells.cellsRidges:
         pipe.write(struct.pack('!Q', cellID))
         pipe.write(struct.pack('!B', len(cells.cellsRidges[cellID])))
-        for ridge in cells.cellsRidges[cellID]:
-            pipe.write(struct.pack('!B', len(ridge)))
-            pipe.write(struct.pack('!Q', ridge[0].vorIndex))
-            if len(ridge) > 1:
-                pipe.write(struct.pack('!Q', ridge[1].vorIndex))
+        for ridgeID in cells.cellsRidges[cellID]:
+            pipe.write(struct.pack('!Q', ridgeID))
 
+    # locations of all terrain primitives
     pipe.write(struct.pack('!Q', len(Ts)))
     for t in Ts.allTs():
         pipe.write(struct.pack('!f', t.position[0]))
