@@ -129,6 +129,8 @@ HydrologyParameters::HydrologyParameters(FILE *stream)
   shore = Shore(contour, resolution, rasterXsize, rasterYsize);
 
   distribution = std::normal_distribution<float>(0.0, riverAngleDev);
+
+  omp_init_lock(&candidateVectorLock);
 }
 
 HydrologyParameters::HydrologyParameters()
