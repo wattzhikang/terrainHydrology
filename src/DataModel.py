@@ -908,7 +908,7 @@ class TerrainHoneycomb:
         :rtype: bool
         """
         return Math.pointInConvexPolygon(p, self.cellVertices(n), self.hydrology.node(n).position)
-    def cellRidges(self, n: int) -> typing.List[tuple]:
+    def cellRidges(self, n: int) -> typing.List[Edge]:
         """Returns the mountain ridges of a cell
 
         That is, this method returns the edges that are not transected by the
@@ -926,7 +926,7 @@ class TerrainHoneycomb:
         :return: A list of tuples, each contain exactly 1 or 2 Qs.
         :rtype: list[tuple]
         """
-        return [(edge.Q0, edge.Q1) for edge in self.cellsEdges[n] if not edge.hasRiver]
+        return [edge for edge in self.cellsEdges[n] if not (edge.hasRiver or edge.isShore)]
     def cellEdges(self, cellID: int) -> Edge:
         return self.cellsEdges[cellID]
     def cellOutflowRidge(self, n: int) -> Edge:

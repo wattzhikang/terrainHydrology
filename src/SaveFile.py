@@ -354,10 +354,10 @@ def writeToTerrainModule(pipe, shore, edgeLength, hydrology, cells: TerrainHoney
 
     # cellsRidges
     pipe.write(struct.pack('!Q', len(cellsRidges)))
-    for cellID in cells.cellsRidges:
+    for cellID in cellsRidges:
         pipe.write(struct.pack('!Q', cellID))
-        pipe.write(struct.pack('!B', len(cells.cellsRidges[cellID])))
-        for ridgeID in cells.cellsRidges[cellID]:
+        pipe.write(struct.pack('!B', len(cellsRidges[cellID])))
+        for ridgeID in cellsRidges[cellID]:
             pipe.write(struct.pack('!Q', ridgeID))
 
     # locations of all terrain primitives

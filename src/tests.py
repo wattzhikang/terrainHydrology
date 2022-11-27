@@ -967,8 +967,6 @@ class RiverTests(unittest.TestCase):
             p0 = river[i]
             p1 = river[i+1]
             for ridge in allRidges:
-                if len(ridge) < 2:
-                    continue
                 self.assertFalse(Math.segments_intersect_tuple(p0, p1, ridge[0].position, ridge[1].position))
     
     def test_always_rising(self) -> None:

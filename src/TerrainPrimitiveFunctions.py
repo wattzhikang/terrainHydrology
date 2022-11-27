@@ -72,8 +72,8 @@ def computePrimitiveElevation(t: T, shore: ShoreModel, hydrology: HydrologyNetwo
     closestRdist = None
     ridgeElevation = None
     for ridge in ridges:
-        q0 = ridge[0]
-        q1 = ridge[1]
+        q0 = ridge.Q0
+        q1 = ridge.Q1
         dist, isToEndpoint = Math.point_segment_distance_is_endpoint(
             t.position[0],t.position[1],
             q0.position[0],q0.position[1],
