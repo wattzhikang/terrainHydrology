@@ -8,6 +8,19 @@ Point = typing.Tuple[float, float]
 # Copied from GitHub user kylemcdonald in gist https://gist.github.com/kylemcdonald/6132fc1c29fd3767691442ba4bc84018
 # intersection between line(p1, p2) and line(p3, p4)
 def edgeIntersection(line0p0: Point, line0p1: Point, line1p0: Point, line1p1: Point) -> Point:
+  """This finds the intersection between 2 line segments, if it exists
+  
+  :param line0p0: The 1st vertex of the 1st line segment
+  :type line0p0: Math.Point
+  :param line0p1: The 2nd vertex of the 1st line segment
+  :type line0p1: Math.Point
+  :param line1p0: The 1st vertex of the 2nd line segment
+  :type line1p0: Math.Point
+  :param line1p1: The 2nd vertex of the 2nd line segment
+  :type line1p1: Math.Point
+  :return: If the intersection exists, it will be returned. Otherwise, None will be returned.
+  :rtype: Math.Point | None
+  """
   x0,y0 = line0p0
   x1,y1 = line0p1
   x2,y2 = line1p0

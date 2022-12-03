@@ -20,6 +20,8 @@ def getRidgeElevation(q: Q, hydrology: HydrologyNetwork, terrainSlope: RasterDat
     :type terrainSlope: RasterData
     :param terrainSlopeRate: This is documented in hydrology.py under "Terrain Parameters"
     :type terrainSlopeRate: float
+    :return: The elevation of the ridge
+    :rtype: float
     """
     if len(q.nodes) < 2:
         # if this Q only borders 1 node, then it's directly on the shore, and should be 0
@@ -31,6 +33,15 @@ def getRidgeElevation(q: Q, hydrology: HydrologyNetwork, terrainSlope: RasterDat
     return maxElevation + d * slope
 
 def initializeTerrainHoneycomb(shore: ShoreModel, hydrology: HydrologyNetwork) -> TerrainHoneycomb:
+    """Based on a hydrology network and a shoreline, determines the correct TerrainHoneycomb
+    
+    :param shore: The shoreline
+    :type shore: DataModel.ShoreModel
+    :param hydrology: The hydrology network
+    :type hydrology: DataModel.HydrologyNetwork
+    :return: A correctly-configured Terrain Honeycomb
+    :rtype: DataModel.TerrainHoneycomb
+    """
     cells = TerrainHoneycomb()
 
     points = [node.position for node in hydrology.allNodes()]
@@ -95,6 +106,17 @@ def initializeTerrainHoneycomb(shore: ShoreModel, hydrology: HydrologyNetwork) -
 # This is for reverse lookup of ridge_points. Given a point (node ID),
 # it retrieves the ridges that border it
 def ridgesToPoints(vor: Voronoi) -> typing.Dict[int, typing.List[int]]:
+    """This creates a dictionary that is simply the reverse lookup of Voronoi.ridge_points
+    
+    Given a point (node ID), it retrieves indices of the ridges that border it.
+
+    This is for internal use.
+
+    :param vor: The Voronoi partition of the hydrology network
+    :type vor: scipy.spatial.Voronoi
+    :return: A dictionary that can be used to retrieve the indices of ridges that border a point
+    :rtype: dict[int, list[int]]
+    """
     point_ridges = { }
     for ridgeID, points in enumerate(vor.ridge_points):
         for point in points: # there should only be 2 of these
@@ -104,11 +126,32 @@ def ridgesToPoints(vor: Voronoi) -> typing.Dict[int, typing.List[int]]:
                 point_ridges[point] = [ ridgeID ]
     return point_ridges
 
-# This function will process a normal ridge that is entirely located on land and may or may not be transected by a river.
-# If this ridge intersects the shore at all, it immediately hands over control to terminateRidgeAndStartShore()
-# Processes: a perfectly normal ridge (including a ridge that is the first in a chain)
-# This function does not assume that there is a previously-processed ridge
 def processRidge(edgesLeft: typing.List[int], cellEdges: typing.List[Edge], createdEdges: typing.Dict[int, Edge], createdQs: typing.Dict[int, Q], shoreQs: typing.List[Q], vor: Voronoi, shore: ShoreModel, hydrology: HydrologyNetwork) -> typing.List[Edge]:
+    """This function will process a normal ridge that is entirely located on land and may or may not be transected by a river.
+    
+    If this ridge intersects the shore at all, it immediately hands over
+    control to :py:func:`terminateRidgeAndStartShore()`. This function does not
+    assume that there is a previously-processed ridge.
+
+    :param edgesLeft: The (Voronoi) indices of edges that haven't been processed yet
+    :type edgesLeft: list[int]
+    :param cellEdges: The edges that have been processed into true DataModel.Edge objects
+    :type cellEdges: list[DataModel.Edge]
+    :param createdEdges: A dict of all the edges that have been created so far. This is necessary because many, if not most, edges are shared between cells. The index will correspond to the Voronoi index of the ridge it corresponds to.
+    :type createdEdges: dict[int, Edge]
+    :param createdQs: A dict of all the Qs that have been created so far. This is necessary because many, if not most, Qs are shared between cells. The index will correspond to the Voronoi index of the ridge point it corresponds to.
+    :type createdQs: dict[int, Q]
+    :param shoreQs: A list of all Qs that are not shared between cells, that is, Qs that are on the shore.
+    :type shoreQs: list[Q]
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :param shore: The shoreline
+    :type shore: DataModel.ShoreModel
+    :param hydrology: The hydrology network created from the shoreline
+    :type hydrology: DataModel.HydrologyNetwork
+    :return: The list of the cell's edges
+    :rtype: list[Edge]
+    """
     if len(edgesLeft) < 1:
         # if there are no more edges left to process, then we're done here
         return cellEdges
@@ -143,8 +186,6 @@ def processRidge(edgesLeft: typing.List[int], cellEdges: typing.List[Edge], crea
             if len(cellEdges) > 1 and cellEdges[-1].isShore:
                 shoreSegment = cellEdges[-1].shoreSegment
 
-            # if ridgeID == 35:
-            #     breakpoint()
             newRidge: Edge = Edge(Q0, Q1, hasRiver=hasRiver(ridgeID, vor, hydrology), isShore=False, shoreSegment=shoreSegment)
             createdEdges[edgesLeft[0]] = newRidge
         cellEdges.append(newRidge)
@@ -155,12 +196,31 @@ def processRidge(edgesLeft: typing.List[int], cellEdges: typing.List[Edge], crea
         # isn't, then we know that this edge must intersect the shore somewhere
         return terminateRidgeAndStartShore(edgesLeft, cellEdges, createdEdges, createdQs, shoreQs, vor, shore, hydrology)
 
-# The current ridge intersects the shoreline. Terminate it at the shore, and then start processing the shoreline
-# Processes: a ridge that intersects the shore
-# This function does not assume that there is a previously-processed edge
 def terminateRidgeAndStartShore(edgesLeft: typing.List[int], cellEdges: typing.List[Edge], createdEdges: typing.Dict[int, Edge], createdQs: typing.Dict[int, Q], shoreQs: typing.List[Q], vor: Voronoi, shore: ShoreModel, hydrology: HydrologyNetwork) -> typing.List[Edge]:
+    """The current ridge intersects the shoreline. Terminate it at the shore, and then start processing the shoreline
+    
+    This function does not assume that there is a previously-processed edge
+
+    :param edgesLeft: The (Voronoi) indices of edges that haven't been processed yet
+    :type edgesLeft: list[int]
+    :param cellEdges: The edges that have been processed into true DataModel.Edge objects
+    :type cellEdges: list[DataModel.Edge]
+    :param createdEdges: A dict of all the edges that have been created so far. This is necessary because many, if not most, edges are shared between cells. The index will correspond to the Voronoi index of the ridge it corresponds to.
+    :type createdEdges: dict[int, Edge]
+    :param createdQs: A dict of all the Qs that have been created so far. This is necessary because many, if not most, Qs are shared between cells. The index will correspond to the Voronoi index of the ridge point it corresponds to.
+    :type createdQs: dict[int, Q]
+    :param shoreQs: A list of all Qs that are not shared between cells, that is, Qs that are on the shore.
+    :type shoreQs: list[Q]
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :param shore: The shoreline
+    :type shore: DataModel.ShoreModel
+    :param hydrology: The hydrology network created from the shoreline
+    :type hydrology: DataModel.HydrologyNetwork
+    :return: The list of the cell's edges
+    :rtype: list[Edge]
+    """
     terminatedEdge: Edge = None
-    shoreSegment = None # TMP DEBUG
     if edgesLeft[0] in createdEdges:
         terminatedEdge = createdEdges[edgesLeft[0]]
     else:
@@ -190,8 +250,6 @@ def terminateRidgeAndStartShore(edgesLeft: typing.List[int], cellEdges: typing.L
         Q1: Q = Q(intersection)
         shoreQs.append(Q1)
 
-        # if edgesLeft[0] == 35:
-        #     breakpoint()
         terminatedEdge = Edge(Q0, Q1, hasRiver=hasRiver(edgesLeft[0], vor, hydrology), isShore=False, shoreSegment=shoreSegment)
         createdEdges[edgesLeft[0]] = terminatedEdge
 
@@ -203,6 +261,31 @@ def terminateRidgeAndStartShore(edgesLeft: typing.List[int], cellEdges: typing.L
 # with one of the other ridges in the cell
 # This function assumes that at least one ridge has been processed so far.
 def processShoreSegment(currentSegment: typing.Tuple[int, int], edgesLeft: typing.List[int], cellEdges: typing.List[Edge], createdEdges: typing.Dict[int, Edge], createdQs: typing.Dict[int, Q], shoreQs: typing.List[Q], vor: Voronoi, shore: ShoreModel, hydrology: HydrologyNetwork) -> typing.List[Edge]:
+    """After a ridge has been terminated at the coast, this function can process the coastline until it finds an intersection with one of the other ridges in the cell
+    
+    This function assumes that at least one ridge has been processed so far.
+
+    :param currentSegment: The shore segment that this function must process. This is a segment in :py:obj:`DataModel.ShoreModel`
+    :type currentSegment: tuple[int, int]
+    :param edgesLeft: The (Voronoi) indices of edges that haven't been processed yet
+    :type edgesLeft: list[int]
+    :param cellEdges: The edges that have been processed into true DataModel.Edge objects
+    :type cellEdges: list[DataModel.Edge]
+    :param createdEdges: A dict of all the edges that have been created so far. This is necessary because many, if not most, edges are shared between cells. The index will correspond to the Voronoi index of the ridge it corresponds to.
+    :type createdEdges: dict[int, Edge]
+    :param createdQs: A dict of all the Qs that have been created so far. This is necessary because many, if not most, Qs are shared between cells. The index will correspond to the Voronoi index of the ridge point it corresponds to.
+    :type createdQs: dict[int, Q]
+    :param shoreQs: A list of all Qs that are not shared between cells, that is, Qs that are on the shore.
+    :type shoreQs: list[Q]
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :param shore: The shoreline
+    :type shore: DataModel.ShoreModel
+    :param hydrology: The hydrology network created from the shoreline
+    :type hydrology: DataModel.HydrologyNetwork
+    :return: The list of the cell's edges
+    :rtype: list[Edge]
+    """
     Q0: Q = cellEdges[-1][1]
 
     # does the current shore segment intersect with any of the edges that haven't been processed yet?
@@ -227,11 +310,37 @@ def processShoreSegment(currentSegment: typing.Tuple[int, int], edgesLeft: typin
 
     return processShoreSegment(currentSegment, edgesLeft, cellEdges, createdEdges, createdQs, shoreQs, vor, shore, hydrology)
 
-# This function terminates the shore segment. It does _not_ process the following ridge segment, as processRidge()
-# can simply observe that this ridge has been processed, and so it can just use the second Q of this edge to
-# start the next one.
-# Processes: the terminated shore segment
 def terminateShoreAndStartRidge(intersectingRidgeID: int, currentSegment: typing.Tuple[int, int], edgesLeft: typing.List[int], cellEdges: typing.List[Edge], createdEdges: typing.Dict[int, Edge], createdQs: typing.Dict[int, Q], shoreQs: typing.List[Q], vor: Voronoi, shore: ShoreModel, hydrology: HydrologyNetwork) -> typing.List[Edge]:
+    """This function terminates the shore segment.
+    
+    It does _not_ process the following ridge segment, as
+    :py:func:`processRidge()` can simply observe that this ridge has been
+    processed, and so it can just use the second Q of this edge to start the
+    next one.
+
+    :param intersectingRidgeID: The voronoi edge that the current shore segment intersects
+    :type intersectingRidgeID: int
+    :param currentSegment: The shore segment that this function must process. This is a segment in :py:obj:`DataModel.ShoreModel`
+    :type currentSegment: tuple[int, int]
+    :param edgesLeft: The (Voronoi) indices of edges that haven't been processed yet
+    :type edgesLeft: list[int]
+    :param cellEdges: The edges that have been processed into true DataModel.Edge objects
+    :type cellEdges: list[DataModel.Edge]
+    :param createdEdges: A dict of all the edges that have been created so far. This is necessary because many, if not most, edges are shared between cells. The index will correspond to the Voronoi index of the ridge it corresponds to.
+    :type createdEdges: dict[int, Edge]
+    :param createdQs: A dict of all the Qs that have been created so far. This is necessary because many, if not most, Qs are shared between cells. The index will correspond to the Voronoi index of the ridge point it corresponds to.
+    :type createdQs: dict[int, Q]
+    :param shoreQs: A list of all Qs that are not shared between cells, that is, Qs that are on the shore.
+    :type shoreQs: list[Q]
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :param shore: The shoreline
+    :type shore: DataModel.ShoreModel
+    :param hydrology: The hydrology network created from the shoreline
+    :type hydrology: DataModel.HydrologyNetwork
+    :return: The list of the cell's edges
+    :rtype: list[Edge]
+    """
     Q0: Q = cellEdges[-1][1]
     Q1: Q = None
     # if the intersecting ridge has already been created, then all we need to do is meet it
@@ -254,18 +363,37 @@ def terminateShoreAndStartRidge(intersectingRidgeID: int, currentSegment: typing
     return processRidge(edgesLeft, cellEdges, createdEdges, createdQs, shoreQs, vor, shore, hydrology)
 
 def hasRiver(ridgeID: int, vor: Voronoi, hydrology: HydrologyNetwork) -> bool:
+    """Determines whether or not a river transects this edge
+    
+    :param ridgeID: The (Voronoi) ridge ID
+    :type ridgeID: int
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :param hydrology: The hydrology network created from the shoreline
+    :type hydrology: DataModel.HydrologyNetwork
+    :return: True if a river transects this edge
+    :rtype: bool
+    """
     node0: HydroPrimitive = hydrology.node(vor.ridge_points[ridgeID][0])
     node1: HydroPrimitive = hydrology.node(vor.ridge_points[ridgeID][1])
     # a river runs through this ridge if the other node is this node's parent, or this node is the other node's parent
     return node0.parent == node1 or node1.parent == node0
 
 def findIntersectingShoreSegment(p0: Point, p1: Point, shore: ShoreModel) -> typing.Tuple[int, int]:
+    """Tries to find a shore segment that intersects with a line segment
+    
+    :param p0: The first point of the input line segment
+    :type p0: Math.Point
+    :param p1: The second point of the input line segment
+    :type p1: Math.Point
+    :return: A shore segment if there is one that intersects with the input line segment, or None
+    :rtype: tuple[int, int] | None
+    """
     power: int = 1
     while True:
         indexes: typing.List[int] = shore.closestNPoints(p0, 4**power)
         for index in indexes:
             if index >= len(shore):
-                breakpoint()
                 return None
             otherIndex = index+1 if index+1 < len(shore) else 0
             if Math.edgeIntersection(shore[index], shore[otherIndex], p0, p1) is not None:
@@ -273,6 +401,23 @@ def findIntersectingShoreSegment(p0: Point, p1: Point, shore: ShoreModel) -> typ
         power = power + 1
 
 def orderEdges(edgesLeft: typing.List[int], nodeLoc: typing.Tuple[float,float], vor: Voronoi, shore: ShoreModel) -> typing.List[int]:
+    """Orders edges of a cell in clockwise order, and so that the first edge is on land.
+    
+    This function will arrange the edges, and their internal vertices, so that they are all in counterclockwise order.
+
+    It also shifts the list so that the first edge in the list has its first vertex on land.
+
+    :param edgesLeft: The edges to order. This should be a complete list of all the edges of a single cell.
+    :type edgesLeft: list[int]
+    :param nodeLoc: The location of the node, but theoretically could be any point inside the cell. The edges will be counterclockwise around this point.
+    :type nodeLoc: tuple[float, float]
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :param shore: The shoreline
+    :type shore: DataModel.ShoreModel
+    :return: The list of edge IDs, in counterclockwise order
+    :rtype: list[int]
+    """
     # only the first ridge needs to be re-ordered. The others will be
     # chained along, so they will be in the right order
     orderVertices(edgesLeft[0], nodeLoc, vor)
@@ -284,7 +429,6 @@ def orderEdges(edgesLeft: typing.List[int], nodeLoc: typing.Tuple[float,float], 
         nextEdgeIdx = None
         for idx in range(len(edgesLeft)):
             ridgeID: int = edgesLeft[idx]
-            # breakpoint()
             if getVertexID1(orderedEdges[-1], vor) == getVertexID0(ridgeID, vor):
                 nextEdgeIdx = idx
                 break
@@ -308,6 +452,17 @@ def orderEdges(edgesLeft: typing.List[int], nodeLoc: typing.Tuple[float,float], 
     return orderedEdges
 
 def orderCreatedEdges(edgesLeft: typing.List[int], vor: Voronoi, createdEdges: typing.Dict[int, Edge]) -> None:
+    """Order edges that have already been created.
+    
+    This has to be done before :py:func:`processRidge()` is called.
+
+    :param edgesLeft: The edges to order. This should be a complete list of all the edges of a single cell.
+    :type edgesLeft: list[int]
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :param createdEdges: A dict of all the edges that have been created so far. The index will correspond to the Voronoi index of the ridge it corresponds to.
+    :type createdEdges: dict[int, Edge]
+    """
     for edgeID in edgesLeft:
         if edgeID not in createdEdges:
             continue
@@ -337,6 +492,17 @@ def orderCreatedEdges(edgesLeft: typing.List[int], vor: Voronoi, createdEdges: t
 
 # this function ensures that ridge vertices are always in counterclockwise order relative to the node's location
 def orderVertices(ridgeID: int, node: typing.Tuple[float, float], vor: Voronoi) -> None:
+    """This function ensures that ridge vertices are always in counterclockwise order relative to the node's location
+    
+    This is typically supposed to be called by :py:func:`orderEdges()`.
+
+    :param ridgeID: The (Voronoi) ID of the ridge that must be sorted.
+    :type ridgeID: int
+    :param node: The location of the node. This can really be any location in the cell, but the node's location is conveniently accessible
+    :type node: tuple[float, float]
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    """
     vector0:    typing.List[float, float, float] = [getVertex0(ridgeID, vor)[0], getVertex0(ridgeID, vor)[1], 0.0]
     vector1:    typing.List[float, float, float] = [getVertex1(ridgeID, vor)[0], getVertex1(ridgeID, vor)[1], 0.0]
     nodeVector: typing.List[float, float, float] = [node[0], node[1], 0.0]
@@ -351,19 +517,66 @@ def orderVertices(ridgeID: int, node: typing.Tuple[float, float], vor: Voronoi) 
         swapVertices(ridgeID, vor)
     return
 
-def swapVertices(ridgeID, vor) -> None:
+def swapVertices(ridgeID: int, vor: Voronoi) -> None:
+    """Swaps 2 vertex IDs for a ridge in the Voronoi dictionaries.
+    
+    This is mostly just shorthand. I got tired of writing these lines over and over.
+
+    Note that this does mutate the Voronoi's dictionaries.
+    
+    :param ridgeID: The ID of the ridge. Its vertices will be swapped.
+    :type ridgeID: int
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    """
     tmpVertex: int = vor.ridge_vertices[ridgeID][0]
     vor.ridge_vertices[ridgeID][0] = vor.ridge_vertices[ridgeID][1]
     vor.ridge_vertices[ridgeID][1] = tmpVertex
 
 def getVertexID0(ridgeID: int, vor: Voronoi) -> int:
+    """Gets the first vertex ID of a ridge. This is just shorthand. I got tired of writing this line over and over.
+    
+    :param ridgeID: The ID of the ridge to query
+    :type ridgeID: int
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :return: the first vertex ID of a ridge
+    :rtype: int
+    """
     return vor.ridge_vertices[ridgeID][0]
 
 def getVertexID1(ridgeID: int, vor: Voronoi) -> int:
+    """Gets the second vertex ID of a ridge. This is just shorthand. I got tired of writing this line over and over.
+    
+    :param ridgeID: The ID of the ridge to query
+    :type ridgeID: int
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :return: the second vertex ID of a ridge
+    :rtype: int
+    """
     return vor.ridge_vertices[ridgeID][1]
 
 def getVertex0(ridgeID: int, vor: Voronoi) -> Point:
+    """Gets the first vertex location of a ridge. This is just shorthand. I got tired of writing this line over and over.
+    
+    :param ridgeID: The ID of the ridge to query
+    :type ridgeID: int
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :return: the first vertex location of a ridge
+    :rtype: Math.Point
+    """
     return vor.vertices[vor.ridge_vertices[ridgeID][0]]
 
 def getVertex1(ridgeID: int, vor: Voronoi) -> Point:
+    """Gets the second vertex location of a ridge. This is just shorthand. I got tired of writing this line over and over.
+    
+    :param ridgeID: The ID of the ridge to query
+    :type ridgeID: int
+    :param vor: The Voronoi partition for the hydrology network
+    :type vor: Scipy.Voronoi
+    :return: the second vertex location of a ridge
+    :rtype: Math.Point
+    """
     return vor.vertices[vor.ridge_vertices[ridgeID][1]]

@@ -16,6 +16,7 @@ import shapefile
 import abc
 
 import typing
+from typing import List
 
 import Math
 from Math import Point
@@ -95,27 +96,64 @@ class RasterData:
         return binary
 
 class ShoreModel(metaclass=abc.ABCMeta):
+    """This class represents the shoreline of the land area.
+
+    This is an abstract class; some logic is common to all ShoreModel
+    implementations, but others must be implemented separately.
+
+    Fundamentally, a shoreline is a list of points that make a polygon. This
+    polygon represents the land area.
+
+    :cvar realShape: The spatial dimensions of the area that the gamma image covers, in meters
+    :vartype realShape: numpy.ndarray[float,float]
+
+    .. note::
+    
+       Shape variables are all in order y,x. (I think? This needs to be updated.)
+    """
     def closestNPoints(self, loc: Point, n: int) -> typing.List[int]:
+        """Gets the closest N shoreline points to a given point
+
+        :param loc: The location to test
+        :type loc: `Math.Point`
+        :param n: The number of points to retrieve
+        :type n: int
+        :return: The closest N points to loc
+        :rtype: List[Math.Point]
+        """
         # ensure that the result is un-squeezed
         n = n if n > 1 else [n]
         distances, indices = self.pointTree.query(loc, k=n)
         return indices
     @abc.abstractmethod
     def distanceToShore(self, loc: Point) -> float:
+        """Gets the distance between a point and the shore
+
+        The distance is in meters.
+
+        :param loc: The location to test
+        :type loc: `Math.Point`
+        :return: The distance between `loc` and the shore in meters
+        :rtype: float
+        """
         raise NotImplementedError
     def isOnLand(self, loc: Point) -> bool:
+        """Determines whether or not a point is on land
+
+        :param loc: The location to test
+        :type loc: `Math.Point`
+        :return: True if the point is on land, False if otherwise
+        :rtype: bool
+        """
         return self.distanceToShore(loc) >= 0
     @abc.abstractmethod
     def __getitem__(self, index: int):
         """Gets a point on the shore by index
 
-        The shore can be thought of as an array of points. These points
-        demarcate the boundary between land and sea, and can be indexed
-
         :param index: The index
         :type index: int
         :return: The index-th coordinate of the shoreline
-        :rtype: tuple of two floats, representing the coordinates in meters
+        :rtype: `Math.Point`
         """
         raise NotImplementedError
     def __len__(self):
@@ -127,22 +165,21 @@ class ShoreModel(metaclass=abc.ABCMeta):
         return len(self.contour)
 
 class ShoreModelImage(ShoreModel):
-    """This class represents the land area.
-    
-    It is indexable as an array of points. These points
-    represent the line that demarcates the boundary between
-    land and sea. This class also has useful functions.
+    """This class creates a shoreline based on a black-and-white image
 
-    :param gammaFileName: The path to the image that defines the shoreline
-    :type gammaFileName: str
+    If you pass in gammaFileName and no binaryFile, this object will be
+    initialized based on an image. If you pass in binaryFile with no
+    gammaFileImage, this object will be reconstituted from a binary file.
+
     :param resolution: The resolution of the input image in meters per pixel
     :type resolution: float
-
-    :cvar realShape: The spatial dimensions of the area that the gamma image covers, in meters
-    :vartype realShape: numpy.ndarray[float,float]
+    :param gammaFileName: The path to the image that defines the shoreline
+    :type gammaFileName: str
+    :param binaryFile: A binary file
+    :type binaryFile: typing.IO
 
     .. note::
-       Shape variables are all in order y,x.
+        If passing in a binary file, you must seek to the appropriate location.
     """
     def __init__(self, resolution: float, gammaFileName: str=None, binaryFile: typing.IO=None) -> None:
         """Constructor
@@ -200,32 +237,11 @@ class ShoreModelImage(ShoreModel):
         self.contour = np.array(self.contour, dtype=np.dtype(np.float32))
         self.pointTree = cKDTree(self.contour)
     def distanceToShore(self, loc: Point) -> float:
-        """Gets the distance between a point and the shore
-
-        The distance is in meters.
-
-        :param loc: The location to test
-        :type loc: a tuple of two floats
-        :return: The distance between `loc` and the shore in meters
-        :rtype: float
-        """
         loc = toImageCoordinates(loc, self.imgray.shape, self.resolution)
 
         #    for some reason this method is      y, x
         return cv.pointPolygonTest(self.contour,(loc[1],loc[0]),True) * self.resolution
     def __getitem__(self, index: int):
-        """Gets a point on the shore by index
-
-        The shore can be thought of as an array of points. These points
-        demarcate the boundary between land and sea, and can be indexed
-
-        :param index: The index
-        :type index: int
-        :return: The index-th coordinate of the shoreline
-        :rtype: tuple of two floats, representing the coordinates in meters
-        """
-        # TODO ensure that points returned are x,y
-
         return fromImageCoordinates((self.contour[index][1],self.contour[index][0]), self.imgray.shape, self.resolution)
 
 class ShoreModelShapefile(ShoreModel):
@@ -283,8 +299,8 @@ class HydroPrimitive:
     :cvar flow: The flow rate of water draining out of this cell (including flow from ancestor cells) in cubic meters per second
     :vartype flow: float
     """
-    def __init__(self, nodeID: int, loc: typing.Tuple[float,float], elevation: float, priority: int, parent: int):
-        self.id = nodeID
+    def __init__(self, id: int, loc: typing.Tuple[float,float], elevation: float, priority: int, parent: int):
+        self.id = id
         self.position = loc
         self.elevation = elevation
         self.priority = priority
@@ -690,15 +706,13 @@ def openCVFillPolyArray(points: typing.List[typing.Tuple[float,float]]) -> typin
 class Q:
     """Represents a ridge point
 
-    Ridge points are created with a ``position``, ``nodes``, and ``vorIndex``.
-    The elevation is computed later.
+    Ridge points are created with a ``position``. The elevation is computed
+    later, and bordering nodes are added as discovered.
 
     :cvar position: Location
     :vartype position: tuple[float,float]
     :cvar nodes: A list of the IDs of each cell that this vertex borders
     :vartype nodes: list[int]
-    :cvar vorIndex: The internal index of the voronoi vertex that this Q represents
-    :vartype vorIndex: int
     :cvar elevation: The elevation of this point
     :vartype elevation: float
     """
@@ -707,9 +721,29 @@ class Q:
         self.nodes = [ ]
         self.elevation = 0
     def addBorderedNode(self, nodeID: int) -> None:
+        """When this Q is discovered to border another node, add it here
+        
+        This is done during the initialization of the
+        :py:obj:`TerrainHoneycomb`.
+        """
         self.nodes.append(nodeID)
 
 class Edge:
+    """An edge of a cell in :py:obj:`TerrainHoneycomb`
+
+    This is a line segment between 2 :py:obj:`Q` s.
+
+    :cvar Q0: One end of the edge
+    :vartype Q0: :py:obj:`Q`
+    :cvar Q1: The other end of the edge
+    :vartype Q1: :py:obj:`Q`
+    :cvar hasRiver: True if this edge is transected by a river
+    :vartype hasRiver: bool
+    :cvar isShore: True if this edge
+    :vartype isShore: bool
+    :cvar shoreSegment: If this edge is a shore segment, then this is a pair of indices of shore points for the shore segment that this edge intersects or line on. They correspond to :py:meth:`ShoreModel.__getitem__`
+    :vartype shoreSegment: Tuple[int,int]
+    """
     def __init__(self, Q0: Q, Q1: Q, hasRiver: bool, isShore: bool, shoreSegment: typing.Tuple[int, int]=None) -> None:
         self.Q0 = Q0
         self.Q1 = Q1
@@ -728,26 +762,32 @@ class TerrainHoneycomb:
     """This class partitions the land into cells around the river nodes
 
     There is a cell around each river node. Every cell is a polygon. Each
-    edge of any polygon is either transected by the flow of a river, or
-    forms a mountainous ridge between two rivers.
+    edge of any polygon is either transected by the flow of a river, forms part
+    of the shoreline, or forms a mountainous ridge between two rivers.
+
+    The ID of a cell is the same as the ID of the :py:obj:`HydroPrimitive` that
+    it is based around.
+
+    Note that constructor does not construct a terrain honeycomb. That is done
+    by :py:func:`TerrainHoneycombFunctions.initializeTerrainHoneycomb`.
 
     :param shore: The ShoreModel for the land area
     :type shore: ShoreModel
     :param hydrology: The filled-out HydrologyNetwork for the land area
     :type hydrology: HydrologyNetwork
-    :param edgeLength: The edge length in the simulation
-    :type edgeLength: float
     :param resolution: The resolution of the underlying rasters in meters per pixel
     :type resolution: float
-    :param dryRun: Indicate that this object is being used for a dry run, thus ridge data will not be needed
-    :type dryRun: bool
+    :param edgeLength: The edge length in the simulation
+    :type edgeLength: float
+    :param binaryFile: A binary file
+    :type binaryFile: typing.IO
+
+    .. note::
+        If passing in a binary file, you must seek to the appropriate location.
 
     .. note::
        ``resolution`` should be the same that was passed to the ShoreModel.
 
-    Internally, this class encapsulates a :class:`scipy.spatial.Voronoi`
-    instance and a couple of dictionaries to classify ridges and other
-    edges.
     """
     def __init__(self, shore: ShoreModel=None, hydrology: HydrologyNetwork=None, resolution: float=None, edgeLength: float=None, binaryFile: typing.IO=None):
         if shore is not None and hydrology is not None and resolution is not None and edgeLength is not None and binaryFile is not None:
@@ -809,45 +849,23 @@ class TerrainHoneycomb:
             for i in range(numEdges):
                 edgeList.append(edges[readValue('!Q', binaryFile)])
             self.cellsEdges[cellID] = edgeList
-    def ridgePositions(self, node: int) -> typing.List[typing.Tuple[float,float]]:
-        """Gets the position of each vertex that makes up the cell
-
-        :param node: The ID of the node whose cell you wish to query
-        :type node: int
-        :return: A list of points that correspond to the vertices that make the cell
-        :rtype: list[tuple[float,float]]
-        """
-        ridges = self.cellsEdges[node] # the indices of the vertex boundaries
-        return [ridge.Q0.position for ridge in ridges] # positions of all the vertices
-    def cellVertices(self, nodeID: int) -> typing.List[typing.Tuple[float,float]]:
-        """Gets the coordinates of the vertices that define the shape of the node's cell
-
-        .. todo::
-            There are a number of degenerate cases where a cell may not have all of
-            its vertices. This is most common with nodes adjacent to the seeee. In such
-            cases, one or more vertices may not be on land, in which case those vertices
-            will not be returned. This necessitates a number of workarounds in other
-            methods, such as :func:`TerrainHoneycomb.cellArea`,
-            :func:`TerrainHoneycomb.boundingBox`, :func:`TerrainHoneycomb.nodeID`, and
-            anything that calls them. Moreover, :func:`TerrainHoneycomb.isInCell` also
-            needs fixing.
+    def cellVertices(self, nodeID: int) -> typing.List[Point]:
+        """Gets the coordinates of the Qs that define the shape of the node's cell
 
         :param nodeID: The ID of the node whose shape you wish to query
         :type nodeID: int
-        :return:
-        :rtype: list[tuple[float,float]]
+        :return: The coordinates of the cell's shape
+        :rtype: Math.Point
         """
-        return self.ridgePositions(nodeID)
+        ridges = self.cellsEdges[nodeID] # the indices of the vertex boundaries
+        return [ridge.Q0.position for ridge in ridges] # positions of all the vertices
     def cellArea(self, node: HydroPrimitive) -> float:
-        """Calculates the (rough) area of the cell that a location is in
+        """Calculates the area of a cell
 
         This method derives the area based on the cell's shape. It is accurate.
-        But in cases where the cell's shape is malformed, this method will not
-        be accurate, and will simply return `resolution**2`, which is essentially
-        the area of a single pixel.
 
-        :param loc: Any location within the cell you wish to query
-        :type loc: tuple[float,float]
+        :param node: The node that you wish to query
+        :type node: HydroPrimitive
         """
         try:
             return Math.convexPolygonArea(
@@ -876,11 +894,11 @@ class TerrainHoneycomb:
         """
         return self.qs.copy()
     def boundingBox(self, n: int) -> typing.Tuple[float,float,float,float]:
-        """Returns the measurements for a bounding box that would contain a cell
+        """Returns the measurements for a bounding box that could contain a cell
 
         This method had a rather specific application. You'll probably never use it.
 
-        :param n: The ID of the node/cell you wish to get a bounding box for
+        :param n: The ID of the cell you wish to get a bounding box for
         :type n: int
         :return: A tuple indicating the lower X, upper X, lower Y, and upper Y, respectively, in meters
         :rtype: tuple[float,float,float,float]
@@ -894,14 +912,11 @@ class TerrainHoneycomb:
         yllim = min([v[1] for v in vertices])
         yulim = max([v[1] for v in vertices])
         return (xllim, xulim, yllim, yulim)
-    def isInCell(self, p: typing.Tuple[float,float], n: int) -> bool:
+    def isInCell(self, p: Point, n: int) -> bool:
         """Determines if a point is within a given cell
 
-        Like :func:`boundingBox`, it is a rough estimate based on a raster
-        that is derived from the rasters in :class:`ShoreModel`
-
-        :param p: The point you wish to test (measurements in meters)
-        :type p: tuple[float,float]
+        :param p: The point you wish to test
+        :type p: Math.Point
         :param n: The ID of the cell you wish to test
         :type n: int
         :return: True of point ``p`` is in the cell that corresponds to ``n``
@@ -909,17 +924,7 @@ class TerrainHoneycomb:
         """
         return Math.pointInConvexPolygon(p, self.cellVertices(n), self.hydrology.node(n).position)
     def cellRidges(self, n: int) -> typing.List[Edge]:
-        """Returns the mountain ridges of a cell
-
-        That is, this method returns the edges that are not transected by the
-        flow of a river---in or out.
-
-        .. note::
-           This method returns a list of tuples, each of which contain exactly
-           1 **OR** 2 :class:`Q` instances. If the tuple contains 2 Qs, then
-           the Qs constitute a mountain ridge. If the tuple contains 1 Q, then
-           it represents a mountain (or hill) that is not connected to a
-           ridge.
+        """Returns cell edges that are not transected by a river, and are not part of the shoreline
 
         :param n: The ID of the cell that you wish to query
         :type n: int
@@ -927,33 +932,34 @@ class TerrainHoneycomb:
         :rtype: list[tuple]
         """
         return [edge for edge in self.cellsEdges[n] if not (edge.hasRiver or edge.isShore)]
-    def cellEdges(self, cellID: int) -> Edge:
+    def cellEdges(self, cellID: int) -> List[Edge]:
+        """Gets all the edges of a cell
+        
+        This includes edges that are transected by rivers or form part of the
+        shoreline.
+        
+        :param cellID: The ID of the cell that you wish to query
+        :type param: int
+        :return: A list of all the edges that bound the cell
+        :rtype: list[Edge]
+        """
         return self.cellsEdges[cellID]
     def cellOutflowRidge(self, n: int) -> Edge:
         """Returns the ridge through which the river flows out of the cell
 
         .. note::
-           A ridge will only be returned if *both* vertices are on land. Otherwise
-           ``None`` will be returned.
+           A ridge will only be returned if the Hydrology node that this cell
+           is based around has a parent. Otherwise, ``None`` will be returned.
 
-           Moreover, the method returns the *IDs* of the vertices, not the Qs
-           themselves.
-
-        .. todo::
-           This method is implemented poorly, and should probably be reworked in
-           the future.
-        
-        :return: The IDs of the vertices that define the outflow ridge, if both are on land
-        :rtype: tuple[int,int] | None
+        :return: The IDs of the vertices that define the outflow ridge, unless this cell is the mouth of a river
+        :rtype: Edge | None
         """
         return self.cellsDownstreamRidges[n] if n in self.cellsDownstreamRidges else None
-    def nodeID(self, point: typing.Tuple[float,float]) -> int:
+    def nodeID(self, point: Point) -> int:
         """Returns the id of the node/cell in which the point is located
 
-        Like :func:`cellArea`, this is not entirely precise
-
         :param point: The point you wish to test
-        :type point: tuple[float,float]
+        :type point: Math.Point
         :return: The ID of a node/cell (Returns None if it isn't in a valid cell)
         :rtype: int
         """
