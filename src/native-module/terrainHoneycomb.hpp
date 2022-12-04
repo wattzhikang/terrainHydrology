@@ -54,7 +54,7 @@ public:
 };
 
 /**
- * @brief Represents a ridge, comprised of one or two Q primitives
+ * @brief Represents a ridge, comprised of two Q primitives
  * 
  */
 class Ridge
@@ -78,7 +78,7 @@ public:
    */
   Q* getPoint0() const {return point0;}
   /**
-   * @brief Get the other end of the ridge, if it exists
+   * @brief Get the other end of the ridge
    * 
    * @return Q* 
    */
@@ -110,10 +110,10 @@ public:
    * 
    * This is intended for creating primitives from a binary data stream
    * 
+   * @param index The index that the new Q should be created with
    * @param position The position of the new Q
    * @param elevation The elevation of the new Q
-   * @param vorIndex The voronoi index of the new Q's corresponding vertex
-   * @param nodes The hydrology primitives that this Q borders
+   * @param nodes The hydrology primitives that this Q borders, as a vector of cell indices
    */
   void dumpQ(
     size_t index, Point position, float elevation,
@@ -121,14 +121,15 @@ public:
   );
 
   /**
-   * @brief 
+   * @brief This is intended for creating a ridge from a binary data stream
    * 
-   * This is intended for creating   from a binary data stream
+   * This creates a ridge and adds 2 Qs specified by the indices. The ridge
+   * will be associated with `index`, and this `index` can be used in
+   * `dumpCellRidge()`.
    * 
-   * @param position The position of the new Q
-   * @param elevation The elevation of the new Q
-   * @param vorIndex The voronoi index of the new Q's corresponding vertex
-   * @param nodes The hydrology primitives that this Q borders
+   * @param index The index for the new ridge
+   * @param Q0index The index of an already-existing Q
+   * @param Q1index The index of another already-existing Q
    */
   void dumpRidge(
     size_t index, size_t Q0index, size_t Q1index
@@ -137,15 +138,17 @@ public:
   /**
    * @brief Associates a Ridge with the ID of a hydrology primitive
    * 
+   * This is intended for creating a TerrainHoneycomb from a binary data stream
+   * 
    * @param cellID The ID of the hydrology primitive that this ridge encloses
    * @param ridge The ridge
    */
   void dumpCellRidge(size_t cellID, size_t ridgeIdx);
 
   /**
-   * @brief Gets a pointer to the Q primitive at an index within the vector
+   * @brief Gets a pointer to the Q primitive at an index within the map
    * 
-   * @param idx The index within the vector
+   * @param idx The index within the map
    * @return Q* This pointer may be NULL if that is what is found at the index
    */
   Q* getQ(size_t idx);
@@ -154,7 +157,7 @@ public:
    * @brief Gets the ridges that enclose a hydrology cell
    * 
    * @param nodeID The ID of the cell
-   * @return std::vector<Ridge> The ridges that enclose it
+   * @return std::vector<Ridge*> The ridges that enclose it
    */
   std::vector<Ridge*> getCellRidges(size_t nodeID);
 };
