@@ -65,8 +65,6 @@ with shapefile.Writer(outputFile, shapeType=3) as w:
     for edge in cells.cellsDownstreamEdges.values():
         coords = [ ]
 
-        # print(edge)
-
         coords.append(edge.Q0.position)
         coords.append(edge.Q1.position)
         
