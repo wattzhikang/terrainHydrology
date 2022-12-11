@@ -46,7 +46,8 @@ def computeRivers(node: HydroPrimitive, hydrology: HydrologyNetwork, cells: Terr
             z.append(p.elevation)
             # makes the river flow through the cell's outflow ridge (so it doesn't transect a mountain)
             if p.parent is not None and pi < len(path)-1 and cells.cellOutflowRidge(p.id) is not None:
-                ridge0, ridge1 = cells.cellOutflowRidge(p.id)
+                ridge0 = cells.cellOutflowRidge(p.id).Q0.position
+                ridge1 = cells.cellOutflowRidge(p.id).Q1.position
                 x.append((ridge0[0] + ridge1[0])/2)
                 y.append((ridge0[1] + ridge1[1])/2)
                 z.append((p.elevation + p.parent.elevation)/2)

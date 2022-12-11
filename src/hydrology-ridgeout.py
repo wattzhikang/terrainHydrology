@@ -63,15 +63,12 @@ with shapefile.Writer(outputFile, shapeType=3) as w:
     for cell in hydrology.allNodes():
 
         for ridge in cells.cellRidges(cell.id):
-            if len(ridge) < 2:
-                continue
-
             coords = [ ]
 
             # print(cells.cellRidges(cell.id))
 
-            coords.append(ridge[0].position)
-            coords.append(ridge[1].position)
+            coords.append(ridge.Q0.position)
+            coords.append(ridge.Q1.position)
             
             coords = [(p[0],p[1]) for p in coords]
 

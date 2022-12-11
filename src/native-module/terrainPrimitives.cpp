@@ -154,25 +154,17 @@ PrimitiveParameters::PrimitiveParameters(FILE *stream, GEOSContextHandle_t geosC
   numQs = be64toh(numQs);
   for (uint64_t i = 0; i < numQs; i++)
   {
-    uint8_t hasQ;
-    fread(&hasQ, sizeof(uint8_t), 1, stream);
-    if (!hasQ)
-    {
-      cells.dumpNull();
-      continue;
-    }
-    
+    uint64_t saveID;
     float x, y, elevation;
-    uint64_t vorIndex;
 
+    fread(&saveID, sizeof(uint64_t), 1, stream);
     fread(&x, sizeof(float), 1, stream);
     fread(&y, sizeof(float), 1, stream);
     fread(&elevation, sizeof(float), 1, stream);
-    fread(&vorIndex, sizeof(uint64_t), 1, stream);
+    saveID = be64toh(saveID);
     x = float_swap(x);
     y = float_swap(y);
     elevation = float_swap(elevation);
-    vorIndex = be64toh(vorIndex);
 
     uint8_t numNeighbors;
     fread(&numNeighbors, sizeof(uint8_t), 1, stream);
@@ -186,13 +178,30 @@ PrimitiveParameters::PrimitiveParameters(FILE *stream, GEOSContextHandle_t geosC
       neighbors.push_back(neighborID);
     }
 
-    cells.dumpQ(Point(x,y), elevation, vorIndex, neighbors);
+    cells.dumpQ(saveID, Point(x,y), elevation, neighbors);
+  }
+
+  /*
+    Read in created ridges
+  */
+  uint64_t numRidges;
+  fread(&numRidges, sizeof(uint64_t), 1, stream);
+  numRidges = be64toh(numRidges);
+  for (uint64_t ri = 0; ri < numRidges; ri++) {
+    uint64_t saveID, q0Index, q1Index;
+    fread(&saveID, sizeof(uint64_t), 1, stream);
+    fread(&q0Index, sizeof(uint64_t), 1, stream);
+    fread(&q1Index, sizeof(uint64_t), 1, stream);
+    saveID = be64toh(saveID);
+    q0Index = be64toh(q0Index);
+    q1Index = be64toh(q1Index);
+
+    cells.dumpRidge(saveID, q0Index, q1Index);
   }
 
   /*
     Read in the cells ridges dictionary
   */
-
   uint64_t cellsToProcess;
   fread(&cellsToProcess, sizeof(uint64_t), 1, stream);
   cellsToProcess = be64toh(cellsToProcess);
@@ -207,32 +216,12 @@ PrimitiveParameters::PrimitiveParameters(FILE *stream, GEOSContextHandle_t geosC
     fread(&numRidges, sizeof(uint8_t), 1, stream);
     for (uint8_t ri = 0; ri < numRidges; ri++)
     {
-      uint8_t verticesInRidge;
-      fread(&verticesInRidge, sizeof(uint8_t), 1, stream);
-      
-      if (verticesInRidge > 1)
-      {
-        uint64_t r0, r1;
-        
-        fread(&r0, sizeof(uint64_t), 1, stream);
-        fread(&r1, sizeof(uint64_t), 1, stream);
-        r0 = be64toh(r0);
-        r1 = be64toh(r1);
+      uint64_t ridgeIdx;
+      fread(&ridgeIdx, sizeof(uint64_t), 1, stream);
+      ridgeIdx = be64toh(ridgeIdx);
 
-        Ridge ridge(cells.getQ(r0), cells.getQ(r1));
-        cells.dumpCellRidge(cellID, ridge);
-        // printf("%ld, ", r1);
-      }
-      else
-      {
-        uint64_t r0;
-        
-        fread(&r0, sizeof(uint64_t), 1, stream);
-        r0 = be64toh(r0);
-
-        Ridge ridge(cells.getQ(r0));
-        cells.dumpCellRidge(cellID, ridge);
-      }
+      cells.dumpCellRidge(cellID, ridgeIdx);
+      // printf("%ld, ", r1);
     }
   }
 
