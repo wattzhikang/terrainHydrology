@@ -1,13 +1,10 @@
-from concurrent.futures import process
 import typing
 
 import numpy as np
 from scipy.spatial import Voronoi
 import Math
 
-from tqdm import trange
-
-from DataModel import Point, ShoreModel, ShoreModelShapefile, TerrainHoneycomb, Q, Edge, HydroPrimitive, HydrologyNetwork, RasterData
+from DataModel import Point, ShoreModel, TerrainHoneycomb, Q, Edge, HydroPrimitive, HydrologyNetwork, RasterData
 
 def getRidgeElevation(q: Q, hydrology: HydrologyNetwork, terrainSlope: RasterData, terrainSlopeRate: float) -> float:
     """Computes the elevation of a ridge/crest
