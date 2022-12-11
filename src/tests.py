@@ -1,11 +1,7 @@
 #! /bin/python
 
-from concurrent.futures import process
-from operator import truediv
-from tkinter import N
 import unittest
-from unittest import mock
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 import shapefile
 from PIL import Image
