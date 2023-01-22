@@ -66,6 +66,6 @@ CREATE TABLE Shoreline (
 
 CREATE TABLE RiverPaths (
     id INT PRIMARY KEY
-)
+);
 
 COMMIT;
