@@ -164,6 +164,8 @@ if args.accelerate:
         print('One or both of the executables does not exist. Run "make" in the src/ directory to build them.')
         exit()
 
+# Initialize the save file
+SaveFile.initDB(outputFile)
 
 # Load input images
 
