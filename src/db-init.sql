@@ -64,4 +64,8 @@ CREATE TABLE Shoreline (
     ,FOREIGN KEY (edgeid) REFERENCES Edges(edgeid)
 );
 
+CREATE TABLE RiverPaths (
+    id INT PRIMARY KEY
+)
+
 COMMIT;
