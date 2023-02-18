@@ -32,10 +32,32 @@ CREATE TABLE RiverNodes (
     ,FOREIGN KEY (parent) REFERENCES RiverNodes(id)
 );
 
+SELECT
+    AddGeometryColumn(
+        'RiverNodes',
+        'loc',
+        37008,
+        'POINT',
+        'XY',
+        1
+    )
+;
+
 CREATE TABLE Qs (
     id INT PRIMARY KEY
     ,elevation FLOAT
 );
+
+SELECT
+    AddGeometryColumn(
+        'Qs',
+        'loc',
+        37008,
+        'POINT',
+        'XY',
+        1
+    )
+;
 
 CREATE TABLE Cells (
     rivernode INT
@@ -50,6 +72,17 @@ CREATE TABLE Ts (
     ,elevation FLOAT
     ,FOREIGN KEY (rivercell) REFERENCES RiverNodes(id)
 );
+
+SELECT
+    AddGeometryColumn(
+        'Ts',
+        'loc',
+        37008,
+        'POINT',
+        'XY',
+        1
+    )
+;
 
 CREATE TABLE Edges (
     id INT PRIMARY KEY
@@ -67,5 +100,16 @@ CREATE TABLE Shoreline (
 CREATE TABLE RiverPaths (
     id INT PRIMARY KEY
 );
+
+SELECT
+    AddGeometryColumn(
+        'RiverPaths',
+        'path',
+        37008,
+        'LINESTRING',
+        'XY',
+        1
+    )
+;
 
 COMMIT;
