@@ -18,7 +18,7 @@ def initDB(dbPath: str) -> None:
 
     with conn:
         conn.enable_load_extension(True)
-        conn.executescript(initScript) # this will automatically commit the transaction
+        conn.executescript(initScript) # this method will automatically commit the transaction
 
 def writeDataModel(path: str, edgeLength: float, shore: DataModel.ShoreModel, hydrology: DataModel.HydrologyNetwork=None, cells: DataModel.TerrainHoneycomb=None, Ts: DataModel.Terrain=None):
     with open(path, 'wb') as file:
