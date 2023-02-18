@@ -10,14 +10,15 @@ from DataModel import ShoreModel, HydrologyNetwork, TerrainHoneycomb, Terrain
 currentVersion = 3
 
 def initDB(dbPath: str) -> None:
-    conn = sqlite3.connect(dbPath)
-    conn.enable_load_extension(True)
-
     initScript = None
     with open(os.path.split(os.path.realpath(__file__))[0] + '/db-init.sql', 'r') as initScriptFile:
         initScript = initScriptFile.read()
 
-    conn.executescript(initScript)
+    conn = sqlite3.connect(dbPath)
+
+    with conn:
+        conn.enable_load_extension(True)
+        conn.executescript(initScript)
 
 def writeDataModel(path: str, edgeLength: float, shore: DataModel.ShoreModel, hydrology: DataModel.HydrologyNetwork=None, cells: DataModel.TerrainHoneycomb=None, Ts: DataModel.Terrain=None):
     with open(path, 'wb') as file:
