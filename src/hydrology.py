@@ -43,6 +43,20 @@ parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
 )
 parser.add_argument(
+    '--lat',
+    help='Center latitude for the output GeoTIFF',
+    dest='latitude',
+    metavar='-43.2',
+    required=True
+)
+parser.add_argument(
+    '--lon',
+    help='Center longitude for the output GeoTIFF',
+    dest='longitude',
+    metavar='-103.8',
+    required=True
+)
+parser.add_argument(
     '-g',
     '--gamma',
     help='An outline of the shore. Should be a grayscale image (but that doesn\'t have to be the actual color model) or an ESRI shapefile',
@@ -165,7 +179,7 @@ if args.accelerate:
         exit()
 
 # Initialize the save file
-SaveFile.initDB(outputFile)
+db = SaveFile.createDB(outputFile, resolution, edgeLength, args.longitude, args.latitude)
 
 # Load input images
 
@@ -255,7 +269,8 @@ except Exception as e:
     print(e)
 
     print('Saving...')
-    SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology=None, cells=None, Ts=None)
+    shore.saveToDB(db)
+    hydrology.saveToDB(db)
 
     exit()
 
@@ -294,7 +309,9 @@ except Exception as e:
     print(e)
 
     print('Saving...')
-    SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology, cells, Ts=None)
+    shore.saveToDB(db)
+    hydrology.saveToDB(db)
+    cells.saveToDB(db)
 
     exit()
 
@@ -315,7 +332,9 @@ except Exception as ex:
     print(ex.with_traceback())
 
     print('Saving...')
-    SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology, cells, Ts=None)
+    shore.saveToDB(db)
+    hydrology.saveToDB(db)
+    cells.saveToDB(db)
 
     exit()
 
@@ -389,13 +408,19 @@ except Exception as e:
     print(e)
 
     print('Saving...')
-    SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology, cells, Ts=None)
+    shore.saveToDB(db)
+    hydrology.saveToDB(db)
+    cells.saveToDB(db)
 
     exit()
 
 ## Save the data
 print('Writing data model...')
-SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology, cells, Ts)
+shore.saveToDB(db)
+hydrology.saveToDB(db)
+cells.saveToDB(db)
+Ts.saveToDB(db)
+db.close() # TODO This should be implemented as a context manager
 print('Complete')
 
 # DEBUG

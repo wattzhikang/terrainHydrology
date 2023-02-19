@@ -21,7 +21,7 @@ def initializeTerrain(hydrology: HydrologyNetwork, cells: TerrainHoneycomb, num_
     """
     terrain = Terrain()
 
-    terrain.cellTs = { }
+    terrain.cellTsDict = { }
     terrain.tList = [ ]
     
     disk = False                # this parameter defines if we look for Poisson-like distribution on a disk/sphere (center at 0, radius 1) or in a square/box (0-1 on x and y)
@@ -45,7 +45,7 @@ def initializeTerrain(hydrology: HydrologyNetwork, cells: TerrainHoneycomb, num_
         points_projected = [ [p[0]*(xulim-xllim)+xllim,p[1]*(yulim-yllim)+yllim] for p in points ]
         points_filtered = [ (p[0],p[1]) for p in points_projected if cells.isInCell(p,n) ]
         cellTs = [T(p,n) for p in points_filtered]
-        terrain.cellTs[n] = cellTs
+        terrain.cellTsDict[n] = cellTs
         terrain.tList += cellTs
 
     allpoints_list = [[t.position[0],t.position[1]] for t in terrain.allTs()]

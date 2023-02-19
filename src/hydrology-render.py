@@ -80,10 +80,18 @@ numProcs = int(args.num_procs)
 latitude = float(args.latitude)
 longitude = float(args.longitude)
 
-## Read the data
-resolution, edgeLength, shore, hydrology, cells, Ts = SaveFile.readDataModel(
-    inputFile
-)
+# Read the data model
+db = SaveFile.openDB(inputFile)
+resolution = SaveFile.getResolution(db)
+edgeLength = SaveFile.getEdgeLength(db)
+shore: DataModel.ShoreModelShapefile = DataModel.ShoreModelShapefile()
+shore.loadFromDB(db)
+hydrology: DataModel.HydrologyNetwork = DataModel.HydrologyNetwork()
+hydrology.loadFromDB(db)
+cells: DataModel.TerrainHoneycomb = DataModel.TerrainHoneycomb()
+cells.loadFromDB(resolution, edgeLength, shore, hydrology, db)
+Ts: DataModel.Terrain = DataModel.Terrain()
+Ts.loadFromDB(db)
 
 radius = edgeLength / 3
 rwidth = edgeLength / 2
