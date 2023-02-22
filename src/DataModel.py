@@ -363,12 +363,20 @@ class HydrologyNetwork:
             flow = row['flow']
             x, y = row['xLoc'], row['yLoc']
 
+            # get the rivers of the node
+            rivers = [ ]
+            for river in db.execute('SELECT AsText(path) FROM RiverPaths WHERE rivernode = ?', (id,)):
+                strPoints = river[0].replace('LINESTRING Z(', '').replace(')', '').split(', ')
+                riverGeom = [(float(x), float(y), float(z)) for x,y,z in [point.split(' ') for point in strPoints]]
+                rivers.append(geom.LineString(riverGeom))
+
             allpoints_list.append((x,y))
 
             node = HydroPrimitive(id, (x,y), elevation, 0, parent)
             node.localWatershed = localWatershed
             node.inheritedWatershed = inheritedWatershed
             node.flow = flow
+            node.rivers = rivers
 
             self.graph.add_node(id, primitive=node)
 
@@ -382,23 +390,20 @@ class HydrologyNetwork:
         with db:
             db.execute('DELETE FROM RiverNodes')
             # write river nodes
-            
-            # # insert nodes one at a time to see which one is causing the error
-            # for node in self.allNodes():
-            #     try:
-            #         db.execute("INSERT INTO RiverNodes (id, parent, elevation, localwatershed, inheritedwatershed, flow, loc) VALUES (?, ?, ?, ?, ?, ?, MakePoint(?, ?, 347895))", (node.id, node.parent, node.elevation, node.localWatershed, node.inheritedWatershed, node.flow, node.x(), node.y()))
-            #     except:
-            #         print(node.id, node.parent, node.elevation, node.localWatershed, node.inheritedWatershed, node.flow, node.x(), node.y())
-            #         raise
-
             db.executemany("INSERT INTO RiverNodes (id, parent, elevation, localwatershed, inheritedwatershed, flow, loc) VALUES (?, ?, ?, ?, ?, ?, MakePoint(?, ?, 347895))", [(node.id, node.parent.id if node.parent is not None else None, node.elevation, node.localWatershed, node.inheritedWatershed, node.flow, node.x(), node.y()) for node in self.allNodes()])
 
             # write river paths
             for node in self.allNodes():
                 for river in node.rivers:
-                    geom = "LINESTRING(" + ", ".join([f'{p[0]} {p[1]}' for p in river.coords]) + ")"
-                    db.execute("INSERT INTO RiverPaths (rivernode, path) VALUES (?, GeomFromText(?, 347895))", (node.id, geom))
+                    geom = "LINESTRINGZ(" + ", ".join([f'{p[0]} {p[1]} {p[2]}' for p in river.coords]) + ")"
+                    try:
+                        db.execute("INSERT INTO RiverPaths (rivernode, path) VALUES (?, GeomFromText(?, 347895))", (node.id, geom))
+                    except:
+                        print('printing geom')
+                        print(geom)
+                        raise
                     #TODO: refactor rivers
+                    #TODO: this can also be simplified by only storing rivers of leaf nodes
     def addNode(self, loc: typing.Tuple[float,float], elevation: float, priority: int, contourIndex: int=None, parent: HydroPrimitive=None) -> HydroPrimitive:
         """Creates and adds a HydrologyPrimitive to the network
 
@@ -748,55 +753,36 @@ class TerrainHoneycomb:
                 self.cellsEdges[cellID] = [ ]
             self.cellsEdges[cellID].append(edges[edgeID])
 
-        self.cellsDownstreamEdges: Dict[int, List[Edge]] = { }
+        self.cellsDownstreamRidges: Dict[int, Edge] = { }
         # get all the pairs of children and their parents, and get the edges between them
-        for row in db.execute('SELECT children.id AS childID, children.parent AS parentID, Edges.id AS edgeID FROM RiverNodes AS children JOIN RiverNodes AS parents ON children.parent = parents.id JOIN Cells ON Cells.rivernode = children.id AND Cells.rivernode = parents.id JOIN Edges ON Edges.Q0 = Cells.q OR Edges.Q1 = Cells.q'):
-            childID = row['childID']
-            parentID = row['parentID']
-            edgeID = row['edgeID']
+        for row in db.execute('SELECT nodeID, downstreamEdgeID FROM DownstreamEdges'):
+            nodeID = row['nodeID']
+            downstreamEdgeID = row['downstreamEdgeID']
 
-            if childID not in self.cellsDownstreamEdges:
-                self.cellsDownstreamEdges[childID] = { }
-            self.cellsDownstreamEdges[childID][parentID] = edges[edgeID]
+            self.cellsDownstreamRidges[nodeID] = edges[downstreamEdgeID]
     def saveToDB(self, db: sqlite3.Connection):
         #compile list of all primitives
-        createdQs: typing.Dict[int, Q] = { }
         createdEdges: typing.Dict[int, Edge] = { }
-        cellsEdges: typing.Dict[int, typing.List[int]] = { }
-        downstreamEdges: typing.Dict[int, int] = { }
         for cellID in range(len(self.hydrology)):
             for edge in self.cellEdges(cellID):
-                if id(edge.Q0) not in createdQs:
-                    createdQs[id(edge.Q0)] = edge.Q0
-                if id(edge.Q1) not in createdQs:
-                    createdQs[id(edge.Q1)] = edge.Q1
-
                 if id(edge) not in createdEdges:
                     createdEdges[id(edge)] = edge
 
-                if cellID not in cellsEdges:
-                    cellsEdges[cellID] = [ id(edge) ]
-                else:
-                    cellsEdges[cellID].append(id(edge))
-
-            outflowRidge = self.cellOutflowRidge(cellID)
-            if outflowRidge is not None:
-                downstreamEdges[cellID] = id(outflowRidge)
-
-        # write Qs
         with db:
             db.execute("DELETE FROM Qs")
             db.execute("DELETE FROM Cells")
             db.execute("DELETE FROM Edges")
 
-            db.executemany("INSERT INTO Qs (id, elevation, loc) VALUES (?, ?, MakePoint(?, ?, 347895))", [(saveID, q.elevation, q.position[0], q.position[1]) for saveID, q in createdQs.items()])
+            # write Qs
+            db.executemany("INSERT INTO Qs (id, elevation, loc) VALUES (?, ?, MakePoint(?, ?, 347895))", [(id(q), q.elevation, q.position[0], q.position[1]) for q in self.qs])
         
             # write cells
-            for qID, q in createdQs.items():
-                db.executemany("INSERT INTO Cells (rivernode, q) VALUES (?, ?)", [(node, qID) for node in q.nodes])
+            for q in self.qs:
+                db.executemany("INSERT INTO Cells (rivernode, q) VALUES (?, ?)", [(node, id(q)) for node in q.nodes])
         
             # write edges
-            db.executemany("INSERT INTO Edges (id, q0, q1) VALUES (?, ?, ?)", [(saveID, id(edge.Q0), id(edge.Q1)) for saveID, edge in createdEdges.items()])
+            # TODO save the other Edge attributes
+            db.executemany("INSERT INTO Edges (id, q0, q1, isShore) VALUES (?, ?, ?, ?)", [(saveID, id(edge.Q0), id(edge.Q1), edge.isShore) for saveID, edge in createdEdges.items()])
     def cellVertices(self, nodeID: int) -> typing.List[Point]:
         """Gets the coordinates of the Qs that define the shape of the node's cell
 

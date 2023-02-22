@@ -70,7 +70,7 @@ realShape = shore.realShape
 with shapefile.Writer(outputFile, shapeType=3) as w:
     w.field('id', 'L')
 
-    for edge in cells.cellsDownstreamEdges.values():
+    for edge in cells.cellsDownstreamRidges.values():
         coords = [ ]
 
         coords.append(edge.Q0.position)

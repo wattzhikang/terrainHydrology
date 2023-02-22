@@ -145,7 +145,7 @@ SELECT
         'path',
         347895,
         'LINESTRING',
-        'XY',
+        'XYZ',
         1
     )
 ;
@@ -155,3 +155,19 @@ CREATE TABLE Parameters (
     key TEXT PRIMARY KEY
     ,value TEXT
 );
+
+-- Views, functions, triggers, stored procedures, etc
+
+-- get all the edges that are between children and parents
+CREATE VIEW DownstreamEdges AS
+SELECT
+    nodes.id AS nodeID
+    ,Edges.id AS downstreamEdgeID
+FROM
+    RiverNodes AS nodes
+    JOIN Cells AS childQ0 ON childQ0.rivernode = nodes.id
+    JOIN Cells AS childQ1 ON childQ1.rivernode = nodes.id
+    JOIN Cells AS parentQ0 ON parentQ0.q = childQ0.q AND parentQ0.rivernode = nodes.parent
+    JOIN Cells AS parentQ1 ON parentQ1.q = childQ1.q AND parentQ1.rivernode = nodes.parent
+    JOIN Edges ON Edges.q0 = childQ0.q AND Edges.q1 = childQ1.q
+;
