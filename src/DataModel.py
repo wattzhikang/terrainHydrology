@@ -775,14 +775,26 @@ class TerrainHoneycomb:
 
             # write Qs
             db.executemany("INSERT INTO Qs (id, elevation, loc) VALUES (?, ?, MakePoint(?, ?, 347895))", [(id(q), q.elevation, q.position[0], q.position[1]) for q in self.qs])
-        
-            # write cells
-            for q in self.qs:
-                db.executemany("INSERT INTO Cells (rivernode, q) VALUES (?, ?)", [(node, id(q)) for node in q.nodes])
-        
+
+            # write cells using the edges, that way we can save the order of the Qs for a good polygon
+            for cellID, edges in self.cellsEdges.items():
+                # we have to put the Qs in order, so we can make a good polygon
+                # the edges are in order, and they are all chained together, so we can just use the order of the edges
+                # but the Qs of the edges are not in order, so we will have to figure out which Q is first for each edge
+                # the first Q of an edge is the Q that is not in the next edge, but _is_ in the previous edge
+                qs = [ edges[0].Q0 if edges[0].Q1 == edges[1].Q0 or edges[0].Q1 == edges[1].Q1 else edges[0].Q1 ]
+                for edgeIdx, edge in enumerate(edges[1:], start=1):
+                    # the first Q of this edge is the Q that is in the previous edge
+                    if edge.Q0 == edges[edgeIdx-1].Q0 or edge.Q0 == edges[edgeIdx-1].Q1:
+                        qs.append(edge.Q0)
+                    else:
+                        qs.append(edge.Q1)
+
+                # now we have the Qs in order, so we can make a polygon
+                db.executemany("INSERT INTO Cells (rivernode, polygonOrder, q) VALUES (?, ?, ?)", [(cellID, idx, id(q)) for idx, q in enumerate(qs)])
+
             # write edges
-            # TODO save the other Edge attributes
-            db.executemany("INSERT INTO Edges (id, q0, q1, isShore) VALUES (?, ?, ?, ?)", [(saveID, id(edge.Q0), id(edge.Q1), edge.isShore) for saveID, edge in createdEdges.items()])
+            db.executemany("INSERT INTO Edges (id, q0, q1, hasRiver, isShore, shore0, shore1) VALUES (?, ?, ?, ?, ?, ?, ?)", [(saveID, id(edge.Q0), id(edge.Q1), edge.hasRiver, edge.isShore, edge.shoreSegment[0] if edge.isShore else None, edge.shoreSegment[1] if edge.isShore else None) for saveID, edge in createdEdges.items()])
     def cellVertices(self, nodeID: int) -> typing.List[Point]:
         """Gets the coordinates of the Qs that define the shape of the node's cell
 

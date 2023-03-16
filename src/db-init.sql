@@ -96,6 +96,7 @@ SELECT
 
 CREATE TABLE Cells (
     rivernode INT
+    ,polygonOrder INT
     ,q INT
     ,FOREIGN KEY (rivernode) REFERENCES RiverNodes(id)
     ,FOREIGN KEY (q) REFERENCES Qs(id)
