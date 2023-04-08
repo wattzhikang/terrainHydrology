@@ -755,9 +755,9 @@ class TerrainHoneycomb:
 
         self.cellsDownstreamRidges: Dict[int, Edge] = { }
         # get all the pairs of children and their parents, and get the edges between them
-        for row in db.execute('SELECT nodeID, downstreamEdgeID FROM DownstreamEdges'):
-            nodeID = row['nodeID']
-            downstreamEdgeID = row['downstreamEdgeID']
+        for row in db.execute('SELECT rivernode, downstreamEdge FROM DownstreamEdges'):
+            nodeID = row['rivernode']
+            downstreamEdgeID = row['downstreamEdge']
 
             self.cellsDownstreamRidges[nodeID] = edges[downstreamEdgeID]
     def saveToDB(self, db: sqlite3.Connection):

@@ -157,18 +157,93 @@ CREATE TABLE Parameters (
     ,value TEXT
 );
 
--- Views, functions, triggers, stored procedures, etc
+-- Views, functions, triggers, etc
+
+-- Note that spatialite does not support dynamically-created geometry in views. Thus, although
+-- the ultimate intention for most of these views is to generate geometry, you'll have to do
+-- that last step manually.
+
+-- get the 2 nodes that each edge divides
+CREATE VIEW EdgeCells AS
+SELECT
+    Edges.id AS edge
+    ,cell0q0.rivernode AS node0
+    ,cell1q0.rivernode AS node1
+FROM
+    Edges
+    -- this join will get us all the cells that have q0
+    JOIN Cells AS cell0q0 ON cell0q0.q = Edges.q0
+    -- this join will get us all the cells that have both q0 and q1
+    -- since this is an inner join, the only matching records will be those cells that have both q0 and q1
+    -- this also rules out edges that are on the coastline
+    JOIN Cells AS cell0q1 ON cell0q1.q = Edges.q1 AND cell0q1.rivernode = cell0q0.rivernode
+    -- but now we also have to get the other node. it also has these 2 qs, but it isn't the last one
+    JOIN Cells AS cell1q0 ON cell1q0.q = Edges.q0
+    JOIN Cells AS cell1q1 ON cell1q1.q = Edges.q1 AND cell1q1.rivernode = cell1q0.rivernode
+WHERE
+    cell0q0.rivernode < cell1q0.rivernode
+;
 
 -- get all the edges that are between children and parents
 CREATE VIEW DownstreamEdges AS
 SELECT
-    nodes.id AS nodeID
-    ,Edges.id AS downstreamEdgeID
+    childNodes.id AS rivernode
+    ,EdgeCells.edge AS downstreamEdge
 FROM
-    RiverNodes AS nodes
-    JOIN Cells AS childQ0 ON childQ0.rivernode = nodes.id
-    JOIN Cells AS childQ1 ON childQ1.rivernode = nodes.id
-    JOIN Cells AS parentQ0 ON parentQ0.q = childQ0.q AND parentQ0.rivernode = nodes.parent
-    JOIN Cells AS parentQ1 ON parentQ1.q = childQ1.q AND parentQ1.rivernode = nodes.parent
-    JOIN Edges ON Edges.q0 = childQ0.q AND Edges.q1 = childQ1.q
+    RiverNodes AS childNodes
+    JOIN EdgeCells ON (EdgeCells.node0 = childNodes.id AND EdgeCells.node1 = childNodes.parent) OR (EdgeCells.node1 = childNodes.id AND EdgeCells.node0 = childNodes.parent)
+;
+
+CREATE VIEW EdgeWatershedDivisions AS
+WITH RECURSIVE NodeAncestors(rivernode, ancestor) AS (
+    -- the anchor members are just all nodes that have a parent
+    SELECT
+        RiverNodes.id AS rivernode
+        ,RiverNodes.id AS ancestor -- the node is its own ancestor. That may not make sense, but it makes the following query easier
+    FROM
+        RiverNodes
+    WHERE
+        RiverNodes.parent IS NOT NULL
+
+    UNION ALL
+
+    -- given a river node and one of its ancestors, return a record with that ancestor's parent, if it exists
+    SELECT
+        NodeAncestors.rivernode AS rivernode
+        ,ancestorOfAncestor.id AS ancestor
+    FROM
+        NodeAncestors
+        JOIN RiverNodes AS ancestor ON ancestor.id = NodeAncestors.ancestor
+        -- since this is an inner join, no records will be returned if this ancestor has no parent
+        JOIN RiverNodes AS ancestorOfAncestor ON ancestorOfAncestor.id = ancestor.parent
+
+    LIMIT 10000 -- TMP DEBUG for safety
+)
+SELECT
+    Edges.id AS edge
+    ,side0cells.ancestor AS watershed0
+    ,side1cells.ancestor AS watershed1
+FROM
+    Edges
+    JOIN EdgeCells ON EdgeCells.edge = Edges.id
+    -- line up all the nodes that are on one side of the edge, down to its root
+    JOIN NodeAncestors AS side0cells ON
+        side0cells.rivernode = EdgeCells.node0
+    -- only continue if this cell doesn't appear in the ancestor list of the other side
+    -- determine this by looking for it, and if the join doesn't find it, then it isn't
+    -- there
+    LEFT JOIN NodeAncestors AS counterfactual0 ON
+        counterfactual0.rivernode = EdgeCells.node1
+        AND counterfactual0.ancestor = side0cells.ancestor
+    -- for all the nodes that aren't in the intersection, all of the nodes are divided
+    -- from all the others
+    JOIN NodeAncestors AS side1cells ON
+        side1cells.rivernode = EdgeCells.node1
+    -- we also have to make sure that these cells aren't in the ancestor list of the other side
+    LEFT JOIN NodeAncestors AS counterfactual1 ON
+        counterfactual1.rivernode = EdgeCells.node0
+        AND counterfactual1.ancestor = side1cells.ancestor
+WHERE
+    counterfactual0.ancestor IS NULL
+    AND counterfactual1.ancestor IS NULL
 ;
