@@ -168,6 +168,11 @@ class ShoreModel(metaclass=abc.ABCMeta):
     def saveToDB(self, db: sqlite3.Connection) -> None:
         """Writes the shoreline to a database
 
+        NOTE: No matter the provenance of a shoreline, whether from an image
+        or shapefile, it will be written to the database as a list of points
+        in the project coordinate system. So regardless of the source, a
+        shoreline should be loaded from the database as a Shapefile shoreline.
+
         :param db: The database to write to
         :type db: sqlite3.Connection
         """
@@ -182,7 +187,7 @@ class ShoreModel(metaclass=abc.ABCMeta):
         :type db: sqlite3.Connection
         """
         db.row_factory = sqlite3.Row
-        cursor = db.execute('SELECT X(loc) AS locX, Y(loc) AS locY FROM Shoreline')
+        cursor = db.execute('SELECT X(loc) AS locX, Y(loc) AS locY FROM Shoreline ORDER BY id')
         self.contour = [(row['locX'], row['locY']) for row in cursor]
         self.contour = np.array(self.contour, dtype=np.float32)
 
@@ -246,6 +251,8 @@ class ShoreModelImage(ShoreModel):
         #    for some reason this method is      y, x
         return cv.pointPolygonTest(self.contour,(loc[1],loc[0]),True) * self.resolution
     def __getitem__(self, index: int):
+        # openCV stores contour points as (y,x), so we need to flip them
+        # we also need to convert from image coordinates to project coordinates
         return fromImageCoordinates((self.contour[index][1],self.contour[index][0]), self.imgray.shape, self.resolution)
 
 class ShoreModelShapefile(ShoreModel):
@@ -264,6 +271,8 @@ class ShoreModelShapefile(ShoreModel):
         # in this class, the contour is stored as x,y, so we put the test points in as x,y
         return cv.pointPolygonTest(self.contour, (loc[0],loc[1]), True)
     def __getitem__(self, index: int):
+        # no need to flip the points, since they're stored as x,y
+        # no need to convert from a coordinate system, since shapefiles are expected to be in the same coordinate system as the project
         return self.contour[index]
 
 class HydroPrimitive:

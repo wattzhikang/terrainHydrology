@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include <sqlite3.h>
 #include <opencv2/imgproc.hpp>
 
 #include "hydrology.hpp"
@@ -30,7 +31,7 @@ public:
    * @param stream A stream from which to receive the data
    * @param geosContext A GEOSContextHandle will be needed to re-encode the rivers
    */
-  PrimitiveParameters(FILE *stream, GEOSContextHandle_t geosContext);
+  PrimitiveParameters(sqlite3 *db, GEOSContextHandle_t geosContext);
   ~PrimitiveParameters() = default;
 };
 

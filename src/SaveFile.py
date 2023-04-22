@@ -1,11 +1,7 @@
-import struct
 import os
 import sqlite3
 
-import typing
-
-import DataModel
-from DataModel import ShoreModel, HydrologyNetwork, TerrainHoneycomb, Terrain
+from DataModel import ShoreModel, RasterData, HydrologyNetwork
 
 currentVersion = 3
 
@@ -41,3 +37,35 @@ def getEdgeLength(db: sqlite3.Connection) -> float:
 def getResolution(db: sqlite3.Connection) -> float:
     with db:
         return float(db.execute('SELECT value FROM Parameters WHERE key = ?', ('resolution',)).fetchone()[0])
+
+def setShoreBoundaries(db: sqlite3.Connection, shore: ShoreModel) -> None:
+    with db:
+        db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('minX', 0))
+        db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('minY', 0))
+        db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('maxX', shore.realShape[0]))
+        db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('maxY', shore.realShape[1]))
+
+def createRiverSlopeRaster(db: sqlite3.Connection, riverSlope: RasterData) -> None:
+    with db:
+        db.execute('CREATE TABLE RiverSlope (x INTEGER, y INTEGER, slope REAL);')
+
+        for x in range(riverSlope.shape[0]):
+            for y in range(riverSlope.shape[1]):
+                db.execute('INSERT INTO RiverSlope (x, y, slope) VALUES (?, ?, ?)', (x, y, riverSlope.data[x, y]))
+
+def dropRiverSlopeRaster(db: sqlite3.Connection) -> None:
+    with db:
+        db.execute('DROP TABLE RiverSlope')
+
+def dumpMouthNodes(db: sqlite3.Connection, hydrology: HydrologyNetwork) -> None:
+    with db:
+        # db.execute('CREATE TABLE MouthNodes (id INTEGER PRIMARY KEY, x REAL, y REAL, z REAL);')
+        db.execute('ALTER TABLE RiverNodes ADD COLUMN priority INTEGER DEFAULT NULL;')
+
+        for node in hydrology.mouthNodes:
+            db.executemany("INSERT INTO RiverNodes (id, priority, contourIndex, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(node.id, node.priority, node.contourIndex, node.x(), node.y()) for node in self.allNodes()])
+
+def dropMouthNodes(db: sqlite3.Connection) -> None:
+    with db:
+        db.execute('ALTER TABLE RiverNodes DROP COLUMN priority;')
+        db.execute('DELETE FROM RiverNodes;')

@@ -4,6 +4,7 @@
 #include <vector>
 #include <random>
 
+#include <sqlite3.h>
 #include <opencv2/imgproc.hpp>
 
 #include "raster.hpp"
@@ -34,9 +35,10 @@ class HydrologyParameters
      * The stream should feed in all the parameters, including the
      * raster data.
      * 
+     * TODO: This is now wrong
      * @param stream A FILE stream, either stdin or a file containing the binary data
      */
-    HydrologyParameters(FILE *stream);
+    HydrologyParameters(sqlite3 *db, char* paIn, char* pcIn, char* sigmaIn, char* etaIn, char* zetaIn, char* slopeRateIn, char* maxTriesIn, char* riverAngleDevIn);
     ~HydrologyParameters();
     HydrologyParameters(const HydrologyParameters& other);
     HydrologyParameters(HydrologyParameters&& other);
@@ -70,10 +72,5 @@ class HydrologyParameters
     std::default_random_engine generator;
     std::normal_distribution<float> distribution;
 };
-
-/**
- * @brief Converts a float from network order to system order
- */
-float float_swap(float value);
 
 #endif

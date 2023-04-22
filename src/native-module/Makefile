@@ -30,7 +30,7 @@ $(GEN)/testsuite.o : tst/testsuite.cpp kdtree.hpp raster.hpp forest.hpp $(GTEST_
 	@ mv testsuite.o $(GEN)/
 
 $(BIN)/testsuite : $(GEN)/testsuite.o $(GEN)/gtest-all.o $(GEN)/gtest_main.o $(GEN)/terrainHoneycomb.o $(GEN)/terrainElevation.o $(GEN)/hydrologyFunctions.o $(GEN)/hydrologyParameters.o $(GEN)/hydrology.o $(GEN)/floatEndian.o $(GEN)/shore.o
-	g++ $(CPPFLAGS) $^ -lpthread -lopencv_core -lopencv_imgproc -lgeos_c -o $@
+	g++ $(CPPFLAGS) $^ -lsqlite3 -lpthread -lopencv_core -lopencv_imgproc -lgeos_c -o $@
 
 test : $(BIN)/testsuite
 	@ $(BIN)/testsuite
@@ -39,10 +39,10 @@ $(GEN)/%.o : %.cpp
 	g++ $(CPPFLAGS) -c -o $@ $^
 
 $(BIN)/buildRivers: $(GEN)/hydrologyFunctions.o $(GEN)/hydrologyParameters.o $(GEN)/buildRivers.o $(GEN)/hydrology.o $(GEN)/floatEndian.o $(GEN)/shore.o
-	g++ $^ $(CPPFLAGS) -lopencv_imgproc -lgeos_c -o $@
+	g++ $^ $(CPPFLAGS) -lsqlite3 -lopencv_imgproc -lgeos_c -o $@
 
 $(BIN)/terrainPrimitives: $(GEN)/ts.o $(GEN)/terrainElevation.o $(GEN)/terrainHoneycomb.o $(GEN)/hydrology.o $(GEN)/floatEndian.o $(GEN)/terrainPrimitives.o $(GEN)/processTerrainPrimitives.o $(GEN)/shore.o
-	g++ $^ $(CPPFLAGS) -lopencv_imgproc -lgeos_c -o $@
+	g++ $^ $(CPPFLAGS) -lsqlite3 -lopencv_imgproc -lgeos_c -o $@
 
 clean :
 	@ rm -f $(BIN)/buildRivers $(BIN)/terrainPrimitives $(BIN)/testsuite $(BIN)/binaryFile *.gch $(GEN)/*

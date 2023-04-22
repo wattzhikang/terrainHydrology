@@ -1,17 +1,13 @@
 #include <stdio.h>
 
+#include <sqlite3.h>
 #include <omp.h>
 
 #include "terrainPrimitives.hpp"
 #include "terrainElevation.hpp"
 #include "floatEndian.hpp"
 
-void writeError(const char *fmt, ...)
-{
-  printf(fmt);
-}
-
-int main()
+int main(int argc, char* argv[])
 {
   //initialize the GEOS library
   std::vector<GEOSContextHandle_t> geosContexts;
@@ -20,21 +16,26 @@ int main()
     geosContexts.push_back(GEOS_init_r());
   }
 
-
-  //gather inputs
-  #define INPUT input
-  #define FILEINPUT
-  #ifdef FILEINPUT
-  FILE *input = fopen("./src/native-module/bin/binaryFile", "rb");
-
-  if (input == NULL)
+  // if there is no input, complain to stderr and exit
+  if (argc < 2)
   {
-    printf("Unable to open file\n");
+    fprintf(stderr, "No input provided to processTerrainPrimitives\n");
     exit(1);
   }
-  #endif
 
-  PrimitiveParameters params(INPUT, geosContexts[0]);
+  // open the sqlite3 database
+  // the path to the database is the first argument
+  sqlite3 *db;
+  if (!sqlite3_open_v2(argv[1], &db, SQLITE_OPEN_READWRITE, NULL))
+  {
+    fprintf(stderr, "Unable to open the file");
+    exit(1);
+  }
+  // load SpatiaLite as an extension
+  sqlite3_enable_load_extension(db, 1);
+  sqlite3_load_extension(db, "mod_spatialite", NULL, NULL);
+
+  PrimitiveParameters params(db, geosContexts[0]);
 
 
   //perform computations

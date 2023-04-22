@@ -1,28 +1,21 @@
 #include "shore.hpp"
 
-void Shore::toImageCoordinates(float x, float y, float *imageX, float *imageY) {
-    x /= resolution;
-    x += cols * 0.5;
-    *imageX = x;
-
-    y /= resolution;
-    y = rows * 0.5 - y;
-    *imageY = y;
-}
-
 Shore::Shore() { }
 
-Shore::Shore(std::vector<cv::Point> contour, float resolution, size_t rasterXsize, size_t rasterYsize):
-    resolution(resolution), rows(rasterYsize), cols(rasterXsize), contour(contour)
-{}
+Shore::Shore(std::vector<Point> contour) {
+    // Convert the vector of points to a vector of cv::Points
+    // use a for each loop
+    for (Point point : contour) {
+        // since these points come from Python ShoreModel.__getitem__(),
+        // they are in the project coordinates already
+        this->contour.push_back(cv::Point2f(point.x(), point.y()));
+    }
+}
 
 double Shore::distanceToShore(float x, float y) {
-    float imageX, imageY;
-    toImageCoordinates(x, y, &imageX, &imageY);
-
-    return resolution * cv::pointPolygonTest(
+    return cv::pointPolygonTest(
         contour,
-        cv::Point2f(imageX, imageY),
+        cv::Point2f(x, y),
         true
     );
 }

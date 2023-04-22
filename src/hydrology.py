@@ -191,6 +191,8 @@ else:
 terrainSlope = DataModel.RasterData(inputTerrain, resolution)
 riverSlope = DataModel.RasterData(inputRiverSlope, resolution)
 
+# Save the shore dimensions
+SaveFile.setShoreBoundaries(db, shore)
 
 ## Generate river mouths
 
@@ -234,9 +236,7 @@ try:
         end = datetime.datetime.now()
         print()
     else: # Generate the hydrology using the native module
-        file = open('src/native-module/bin/binaryFile', 'w+b')
-        file.write(params.toBinary())
-        file.close()
+        SaveFile.dumpMouthNodes(db, hydrology)
         proc = subprocess.Popen( # start the native module
             [buildRiversExe],
             stdin=subprocess.PIPE,
@@ -256,6 +256,7 @@ try:
             cyclesRun = cyclesRun + 1
         end = datetime.datetime.now()
         print()
+        SaveFile.dropMouthNodes(db)
 
         # Recreate hydrology with data from the native module
         print('\tReading data...')
@@ -271,6 +272,10 @@ except Exception as e:
     print('Saving...')
     shore.saveToDB(db)
     hydrology.saveToDB(db)
+
+    db.dropRiverSlopeRaster()
+
+    db.close()
 
     exit()
 
@@ -313,6 +318,10 @@ except Exception as e:
     hydrology.saveToDB(db)
     cells.saveToDB(db)
 
+    db.dropRiverSlopeRaster()
+
+    db.close()
+
     exit()
 
 try:
@@ -335,6 +344,10 @@ except Exception as ex:
     shore.saveToDB(db)
     hydrology.saveToDB(db)
     cells.saveToDB(db)
+
+    db.dropRiverSlopeRaster()
+
+    db.close()
 
     exit()
 
@@ -379,14 +392,14 @@ try:
             processes[p].join()
             pipes[p][0].close()
     else:
-        # Write the binary data to a file
-        with open('src/native-module/bin/binaryFile', 'w+b') as file:
-            SaveFile.writeToTerrainModule(file, shore, edgeLength, hydrology, cells, Ts)
-            file.close()
+        # # Write the binary data to a file
+        # with open('src/native-module/bin/binaryFile', 'w+b') as file:
+        #     SaveFile.writeToTerrainModule(file, shore, edgeLength, hydrology, cells, Ts)
+        #     file.close()
 
         # Run the native module
         primitivesProc = subprocess.Popen( # start the native module
-            ['./' + computePrimitivesExe],
+            ['./' + computePrimitivesExe + outputFile],
             stdout=subprocess.PIPE
         )
 
@@ -412,6 +425,10 @@ except Exception as e:
     hydrology.saveToDB(db)
     cells.saveToDB(db)
 
+    db.dropRiverSlopeRaster()
+
+    db.close()
+
     exit()
 
 ## Save the data
@@ -420,6 +437,7 @@ shore.saveToDB(db)
 hydrology.saveToDB(db)
 cells.saveToDB(db)
 Ts.saveToDB(db)
+db.dropRiverSlopeRaster()
 db.close() # TODO This should be implemented as a context manager
 print('Complete')
 

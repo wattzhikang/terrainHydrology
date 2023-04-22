@@ -393,25 +393,26 @@ namespace
     TEST(ShoreTests, DistanceToShoreTestI) {
         /* Create a shoreline */
         const int r = 1000;
-        cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
-        std::vector<cv::Point2f> vert(6);
-        vert[0] = cv::Point( 1500, 1340 );
-        vert[1] = cv::Point( 1000, 2000 );
-        vert[2] = cv::Point( 1500, 2860 );
-        vert[3] = cv::Point( 2500, 2860 );
-        vert[4] = cv::Point( 3000, 2000 );
-        vert[5] = cv::Point( 2500, 1340 );
-        for( int i = 0; i < 6; i++ )
-        {
-            cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
-        }
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours( 
-            src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
-        );
+        // cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
+        // std::vector<cv::Point2f> vert(6);
+        std::vector<Point> contour;
+        contour.push_back(Point( 1500 * 2, 1340 * 2));
+        contour.push_back(Point( 1000 * 2, 2000 * 2));
+        contour.push_back(Point( 1500 * 2, 2860 * 2));
+        contour.push_back(Point( 2500 * 2, 2860 * 2));
+        contour.push_back(Point( 3000 * 2, 2000 * 2));
+        contour.push_back(Point( 2500 * 2, 1340 * 2));
+        // for( int i = 0; i < 6; i++ )
+        // {
+        //     cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
+        // }
+        // std::vector<std::vector<cv::Point> > contours;
+        // cv::findContours( 
+        //     src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
+        // );
 
         HydrologyParameters params(Point(1500*2.0,1300*2.0),Point(1550*2.0,1400*2.0));
-        params.shore = Shore(contours[0], 2.0, 4000, 4000);
+        params.shore = Shore(contour);
 
         EXPECT_NEAR(params.shore.distanceToShore(-600,-1600), 120, 5);
         EXPECT_NEAR(params.shore.distanceToShore(0,0), 1320, 5);
@@ -420,25 +421,26 @@ namespace
     {
         /* Create a shoreline */
         const int r = 1000;
-        cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
-        std::vector<cv::Point2f> vert(6);
-        vert[0] = cv::Point( 1500, 1340 );
-        vert[1] = cv::Point( 1000, 2000 );
-        vert[2] = cv::Point( 1500, 2860 );
-        vert[3] = cv::Point( 2500, 2860 );
-        vert[4] = cv::Point( 3000, 2000 );
-        vert[5] = cv::Point( 2500, 1340 );
-        for( int i = 0; i < 6; i++ )
-        {
-            cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
-        }
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours( 
-            src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
-        );
+        // cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
+        // std::vector<cv::Point2f> vert(6);
+        std::vector<Point> contour;
+        contour.push_back(Point( 1500 * 2, 1340 * 2));
+        contour.push_back(Point( 1000 * 2, 2000 * 2));
+        contour.push_back(Point( 1500 * 2, 2860 * 2));
+        contour.push_back(Point( 2500 * 2, 2860 * 2));
+        contour.push_back(Point( 3000 * 2, 2000 * 2));
+        contour.push_back(Point( 2500 * 2, 1340 * 2));
+        // for( int i = 0; i < 6; i++ )
+        // {
+        //     cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
+        // }
+        // std::vector<std::vector<cv::Point> > contours;
+        // cv::findContours( 
+        //     src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
+        // );
 
         HydrologyParameters params(Point(1500*2.0,1300*2.0),Point(1550*2.0,1400*2.0));
-        params.shore = Shore(contours[0], 2.0, 4000, 4000);
+        params.shore = Shore(contour);
         params.resolution = 2.0; //space units / map unit
         params.edgeLength = 40.0; //space units
         params.eta = 0.95;
@@ -463,25 +465,26 @@ namespace
     {
         /* Create a shoreline */
         const int r = 1000;
-        cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
-        std::vector<cv::Point2f> vert(6);
-        vert[0] = cv::Point( 1500, 1340 );
-        vert[1] = cv::Point( 1000, 2000 );
-        vert[2] = cv::Point( 1500, 2860 );
-        vert[3] = cv::Point( 2500, 2860 );
-        vert[4] = cv::Point( 3000, 2000 );
-        vert[5] = cv::Point( 2500, 1340 );
-        for( int i = 0; i < 6; i++ )
-        {
-            cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
-        }
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours( 
-            src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
-        );
+        // cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
+        // std::vector<cv::Point2f> vert(6);
+        std::vector<Point> contour;
+        contour.push_back(Point( 1500 * 2, 1340 * 2));
+        contour.push_back(Point( 1000 * 2, 2000 * 2));
+        contour.push_back(Point( 1500 * 2, 2860 * 2));
+        contour.push_back(Point( 2500 * 2, 2860 * 2));
+        contour.push_back(Point( 3000 * 2, 2000 * 2));
+        contour.push_back(Point( 2500 * 2, 1340 * 2));
+        // for( int i = 0; i < 6; i++ )
+        // {
+        //     cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
+        // }
+        // std::vector<std::vector<cv::Point> > contours;
+        // cv::findContours( 
+        //     src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
+        // );
 
         HydrologyParameters params(Point(1500*2.0,1300*2.0),Point(1550*2.0,1400*2.0));
-        params.shore = Shore(contours[0], 2.0, 4000, 4000);
+        params.shore = Shore(contour);
         params.resolution = 2.0; //space units / map unit
         params.edgeLength = 40.0; //space units
         params.eta = 0.95;
@@ -506,25 +509,26 @@ namespace
     {
         /* Create a shoreline */
         const int r = 1000;
-        cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
-        std::vector<cv::Point2f> vert(6);
-        vert[0] = cv::Point( 1500, 1340 );
-        vert[1] = cv::Point( 1000, 2000 );
-        vert[2] = cv::Point( 1500, 2860 );
-        vert[3] = cv::Point( 2500, 2860 );
-        vert[4] = cv::Point( 3000, 2000 );
-        vert[5] = cv::Point( 2500, 1340 );
-        for( int i = 0; i < 6; i++ )
-        {
-            cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
-        }
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours( 
-            src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
-        );
+        // cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
+        // std::vector<cv::Point2f> vert(6);
+        std::vector<Point> contour;
+        contour.push_back(Point( 1500 * 2, 1340 * 2));
+        contour.push_back(Point( 1000 * 2, 2000 * 2));
+        contour.push_back(Point( 1500 * 2, 2860 * 2));
+        contour.push_back(Point( 2500 * 2, 2860 * 2));
+        contour.push_back(Point( 3000 * 2, 2000 * 2));
+        contour.push_back(Point( 2500 * 2, 1340 * 2));
+        // for( int i = 0; i < 6; i++ )
+        // {
+        //     cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
+        // }
+        // std::vector<std::vector<cv::Point> > contours;
+        // cv::findContours( 
+        //     src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
+        // );
 
         HydrologyParameters params(Point(1500*2.0,1300*2.0),Point(1550*2.0,1400*2.0));
-        params.shore = Shore(contours[0], 2.0, 4000, 4000);
+        params.shore = Shore(contour);
         params.resolution = 2.0; //space units / map unit
         params.edgeLength = 40.0; //space units
         params.eta = 0.95;
@@ -549,25 +553,26 @@ namespace
     {
         /* Create a shoreline */
         const int r = 1000;
-        cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
-        std::vector<cv::Point2f> vert(6);
-        vert[0] = cv::Point( 1500, 1340 );
-        vert[1] = cv::Point( 1000, 2000 );
-        vert[2] = cv::Point( 1500, 2860 );
-        vert[3] = cv::Point( 2500, 2860 );
-        vert[4] = cv::Point( 3000, 2000 );
-        vert[5] = cv::Point( 2500, 1340 );
-        for( int i = 0; i < 6; i++ )
-        {
-            cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
-        }
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours( 
-            src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
-        );
+        // cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
+        // std::vector<cv::Point2f> vert(6);
+        std::vector<Point> contour;
+        contour.push_back(Point( 1500 * 2, 1340 * 2));
+        contour.push_back(Point( 1000 * 2, 2000 * 2));
+        contour.push_back(Point( 1500 * 2, 2860 * 2));
+        contour.push_back(Point( 2500 * 2, 2860 * 2));
+        contour.push_back(Point( 3000 * 2, 2000 * 2));
+        contour.push_back(Point( 2500 * 2, 1340 * 2));
+        // for( int i = 0; i < 6; i++ )
+        // {
+        //     cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
+        // }
+        // std::vector<std::vector<cv::Point> > contours;
+        // cv::findContours( 
+        //     src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
+        // );
 
         HydrologyParameters params(Point(1500*2.0,1300*2.0),Point(1550*2.0,1400*2.0));
-        params.shore = Shore(contours[0], 2.0, 4000, 4000);
+        params.shore = Shore(contour);
         params.resolution = 2.0; //space units / map unit
         params.edgeLength = 40.0; //space units
         params.eta = 0.95;
@@ -592,25 +597,26 @@ namespace
     {
         /* Create a shoreline */
         const int r = 1000;
-        cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
-        std::vector<cv::Point2f> vert(6);
-        vert[0] = cv::Point( 1500, 1340 );
-        vert[1] = cv::Point( 1000, 2000 );
-        vert[2] = cv::Point( 1500, 2860 );
-        vert[3] = cv::Point( 2500, 2860 );
-        vert[4] = cv::Point( 3000, 2000 );
-        vert[5] = cv::Point( 2500, 1340 );
-        for( int i = 0; i < 6; i++ )
-        {
-            cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
-        }
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours( 
-            src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
-        );
+        // cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
+        // std::vector<cv::Point2f> vert(6);
+        std::vector<Point> contour;
+        contour.push_back(Point( 1500 * 2, 1340 * 2));
+        contour.push_back(Point( 1000 * 2, 2000 * 2));
+        contour.push_back(Point( 1500 * 2, 2860 * 2));
+        contour.push_back(Point( 2500 * 2, 2860 * 2));
+        contour.push_back(Point( 3000 * 2, 2000 * 2));
+        contour.push_back(Point( 2500 * 2, 1340 * 2));
+        // for( int i = 0; i < 6; i++ )
+        // {
+        //     cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
+        // }
+        // std::vector<std::vector<cv::Point> > contours;
+        // cv::findContours( 
+        //     src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
+        // );
 
         HydrologyParameters params(Point(1500*2.0,1300*2.0),Point(1550*2.0,1400*2.0));
-        params.shore = Shore(contours[0], 2.0, 4000, 4000);
+        params.shore = Shore(contour);
         params.resolution = 2.0; //space units / map unit
         params.edgeLength = 40.0; //space units
         params.eta = 0.95;
@@ -640,25 +646,26 @@ namespace
 
         /* Create a shoreline */
         const int r = 1000;
-        cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
-        std::vector<cv::Point2f> vert(6);
-        vert[0] = cv::Point( 1500, 1340 );
-        vert[1] = cv::Point( 1000, 2000 );
-        vert[2] = cv::Point( 1500, 2860 );
-        vert[3] = cv::Point( 2500, 2860 );
-        vert[4] = cv::Point( 3000, 2000 );
-        vert[5] = cv::Point( 2500, 1340 );
-        for( int i = 0; i < 6; i++ )
-        {
-            cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
-        }
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours( 
-            src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
-        );
+        // cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
+        // std::vector<cv::Point2f> vert(6);
+        std::vector<Point> contour;
+        contour.push_back(Point( 1500 * 2, 1340 * 2));
+        contour.push_back(Point( 1000 * 2, 2000 * 2));
+        contour.push_back(Point( 1500 * 2, 2860 * 2));
+        contour.push_back(Point( 2500 * 2, 2860 * 2));
+        contour.push_back(Point( 3000 * 2, 2000 * 2));
+        contour.push_back(Point( 2500 * 2, 1340 * 2));
+        // for( int i = 0; i < 6; i++ )
+        // {
+        //     cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
+        // }
+        // std::vector<std::vector<cv::Point> > contours;
+        // cv::findContours( 
+        //     src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
+        // );
 
         HydrologyParameters params(Point(500*2.0,1000*2.0),Point(3500*2.0,3000*2.0));
-        params.shore = Shore(contours[0], 2.0, 4000, 4000);
+        params.shore = Shore(contour);
         params.resolution = 2.0; //space units / map unit
 
         const size_t contourIndex = 175;
@@ -674,25 +681,26 @@ namespace
     {
         /* Create a shoreline */
         const int r = 1000;
-        cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
-        std::vector<cv::Point2f> vert(6);
-        vert[0] = cv::Point( 1500, 1340 );
-        vert[1] = cv::Point( 1000, 2000 );
-        vert[2] = cv::Point( 1500, 2860 );
-        vert[3] = cv::Point( 2500, 2860 );
-        vert[4] = cv::Point( 3000, 2000 );
-        vert[5] = cv::Point( 2500, 1340 );
-        for( int i = 0; i < 6; i++ )
-        {
-            cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
-        }
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours( 
-            src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
-        );
+        // cv::Mat src = cv::Mat::zeros( cv::Size( 4*r, 4*r ), CV_8U );
+        // std::vector<cv::Point2f> vert(6);
+        std::vector<Point> contour;
+        contour.push_back(Point( 1500 * 2, 1340 * 2));
+        contour.push_back(Point( 1000 * 2, 2000 * 2));
+        contour.push_back(Point( 1500 * 2, 2860 * 2));
+        contour.push_back(Point( 2500 * 2, 2860 * 2));
+        contour.push_back(Point( 3000 * 2, 2000 * 2));
+        contour.push_back(Point( 2500 * 2, 1340 * 2));
+        // for( int i = 0; i < 6; i++ )
+        // {
+        //     cv::line( src, vert[i],  vert[(i+1)%6], cv::Scalar( 255 ), 3 );
+        // }
+        // std::vector<std::vector<cv::Point> > contours;
+        // cv::findContours( 
+        //     src, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE
+        // );
 
         HydrologyParameters params(Point(1500*2.0,1300*2.0),Point(1550*2.0,1400*2.0));
-        params.shore = Shore(contours[0], 2.0, 4000, 4000);
+        params.shore = Shore(contour);
         params.resolution = 2.0; //space units / map unit
         params.edgeLength = 40.0; //space units
         params.eta = 0.95;
@@ -801,107 +809,107 @@ namespace
 
         delete buffer;
     }
-    TEST(PrimitiveTests, ToBinaryLocXTest)
-    {
-        Hydrology hydrology(Point(-1,-1),Point(4,6), 1.0);
-        hydrology.addMouthNode(
-            Point(3.14,5.2), 12.1,5,10
-        );
-        hydrology.addRegularNode(
-            Point(0,0), 0.0, 0, 0
-        );
-        hydrology.addRegularNode(
-            Point(0,0), 0.0, 0, 0
-        );
+    // TEST(PrimitiveTests, ToBinaryLocXTest)
+    // {
+    //     Hydrology hydrology(Point(-1,-1),Point(4,6), 1.0);
+    //     hydrology.addMouthNode(
+    //         Point(3.14,5.2), 12.1,5,10
+    //     );
+    //     hydrology.addRegularNode(
+    //         Point(0,0), 0.0, 0, 0
+    //     );
+    //     hydrology.addRegularNode(
+    //         Point(0,0), 0.0, 0, 0
+    //     );
 
-        Primitive node = hydrology.getNode(0);
+    //     Primitive node = hydrology.getNode(0);
 
-        uint8_t *buffer = new uint8_t[node.binarySize()];
+    //     uint8_t *buffer = new uint8_t[node.binarySize()];
 
-        node.toBinary(buffer);
+    //     node.toBinary(buffer);
 
-        float locX;
-        memcpy(
-            &locX,
-            buffer
-                + sizeof(uint64_t)*3
-                + sizeof(uint8_t)
-                + sizeof(uint64_t)*2,
-            sizeof(float)
-        );
-        locX = float_swap(locX);
-        ASSERT_LT(abs(3.14-locX), 0.001);
+    //     float locX;
+    //     memcpy(
+    //         &locX,
+    //         buffer
+    //             + sizeof(uint64_t)*3
+    //             + sizeof(uint8_t)
+    //             + sizeof(uint64_t)*2,
+    //         sizeof(float)
+    //     );
+    //     locX = float_swap(locX);
+    //     ASSERT_LT(abs(3.14-locX), 0.001);
 
-        delete buffer;
-    }
-    TEST(PrimitiveTests, ToBinaryLocYTest)
-    {
-        Hydrology hydrology(Point(-1,-1),Point(4,6), 1.0);
-        hydrology.addMouthNode(
-            Point(3.14,5.2), 12.1,5,10
-        );
-        hydrology.addRegularNode(
-            Point(0,0), 0.0, 0, 0
-        );
-        hydrology.addRegularNode(
-            Point(0,0), 0.0, 0, 0
-        );
+    //     delete buffer;
+    // }
+    // TEST(PrimitiveTests, ToBinaryLocYTest)
+    // {
+    //     Hydrology hydrology(Point(-1,-1),Point(4,6), 1.0);
+    //     hydrology.addMouthNode(
+    //         Point(3.14,5.2), 12.1,5,10
+    //     );
+    //     hydrology.addRegularNode(
+    //         Point(0,0), 0.0, 0, 0
+    //     );
+    //     hydrology.addRegularNode(
+    //         Point(0,0), 0.0, 0, 0
+    //     );
 
-        Primitive node = hydrology.getNode(0);
+    //     Primitive node = hydrology.getNode(0);
 
-        uint8_t *buffer = new uint8_t[node.binarySize()];
+    //     uint8_t *buffer = new uint8_t[node.binarySize()];
 
-        node.toBinary(buffer);
+    //     node.toBinary(buffer);
 
-        float locY;
-        memcpy(
-            &locY,
-            buffer
-                + sizeof(uint64_t)*3
-                + sizeof(uint8_t)
-                + sizeof(uint64_t)*2
-                + sizeof(float),
-            sizeof(float)
-        );
-        locY = float_swap(locY);
-        ASSERT_LT(abs(5.2-locY), 0.001);
+    //     float locY;
+    //     memcpy(
+    //         &locY,
+    //         buffer
+    //             + sizeof(uint64_t)*3
+    //             + sizeof(uint8_t)
+    //             + sizeof(uint64_t)*2
+    //             + sizeof(float),
+    //         sizeof(float)
+    //     );
+    //     locY = float_swap(locY);
+    //     ASSERT_LT(abs(5.2-locY), 0.001);
 
-        delete buffer;
-    }
-    TEST(PrimitiveTests, ToBinaryElevationTest)
-    {
-        Hydrology hydrology(Point(-1,-1),Point(4,6), 1.0);
-        hydrology.addMouthNode(
-            Point(3.14,5.2), 12.1,5,10
-        );
-        hydrology.addRegularNode(
-            Point(0,0), 0.0, 0, 0
-        );
-        hydrology.addRegularNode(
-            Point(0,0), 0.0, 0, 0
-        );
+    //     delete buffer;
+    // }
+    // TEST(PrimitiveTests, ToBinaryElevationTest)
+    // {
+    //     Hydrology hydrology(Point(-1,-1),Point(4,6), 1.0);
+    //     hydrology.addMouthNode(
+    //         Point(3.14,5.2), 12.1,5,10
+    //     );
+    //     hydrology.addRegularNode(
+    //         Point(0,0), 0.0, 0, 0
+    //     );
+    //     hydrology.addRegularNode(
+    //         Point(0,0), 0.0, 0, 0
+    //     );
 
-        Primitive node = hydrology.getNode(0);
+    //     Primitive node = hydrology.getNode(0);
 
-        uint8_t *buffer = new uint8_t[node.binarySize()];
+    //     uint8_t *buffer = new uint8_t[node.binarySize()];
 
-        node.toBinary(buffer);
+    //     node.toBinary(buffer);
 
-        float elevation;
-        memcpy(
-            &elevation,
-            buffer
-                + sizeof(uint64_t)*3
-                + sizeof(uint8_t)
-                + sizeof(uint64_t)*2
-                + sizeof(float)*2,
-            sizeof(float)
-        );
-        elevation = float_swap(elevation);
-        ASSERT_LT(abs(12.1-elevation), 0.001);
+    //     float elevation;
+    //     memcpy(
+    //         &elevation,
+    //         buffer
+    //             + sizeof(uint64_t)*3
+    //             + sizeof(uint8_t)
+    //             + sizeof(uint64_t)*2
+    //             + sizeof(float)*2,
+    //         sizeof(float)
+    //     );
+    //     elevation = float_swap(elevation);
+    //     ASSERT_LT(abs(12.1-elevation), 0.001);
 
-        delete buffer;
-    }
+    //     delete buffer;
+    // }
     // TEST(RasterTests, ReadRasterTest)
     // {
     //     FILE *input = fopen("./binaryFile", "rb");

@@ -18,85 +18,82 @@ HydrologyParameters::HydrologyParameters(Point lowerLeft, Point upperRight)
   hydrology = Hydrology(lowerLeft, upperRight, dimension);
 }
 
-HydrologyParameters::HydrologyParameters(FILE *stream)
+HydrologyParameters::HydrologyParameters(sqlite3 *db, char* paIn, char* pcIn, char* sigmaIn, char* etaIn, char* zetaIn, char* slopeRateIn, char* maxTriesIn, char* riverAngleDevIn)
 {
+  sqlite3_stmt *stmt;
+
   /* Read the size of the area */
 
+  // load minX, maxX, minY, maxY from the Parameters table
   float minX, maxX, minY, maxY;
-  fread(&minX, sizeof(float), 1, stream);
-  fread(&minY, sizeof(float), 1, stream);
-  fread(&maxX, sizeof(float), 1, stream);
-  fread(&maxY, sizeof(float), 1, stream);
-  minX = float_swap(minX);
-  minY = float_swap(minY);
-  maxX = float_swap(maxX);
-  maxY = float_swap(maxY);
+
+  // they are separate records, so we need to query the database for each one
+  sqlite3_prepare_v2(db, "SELECT minX FROM Parameters", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  minX = sqlite3_column_double(stmt, 0);
+  sqlite3_finalize(stmt);
+
+  sqlite3_prepare_v2(db, "SELECT maxX FROM Parameters", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  maxX = sqlite3_column_double(stmt, 0);
+  sqlite3_finalize(stmt);
+
+  sqlite3_prepare_v2(db, "SELECT minY FROM Parameters", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  minY = sqlite3_column_double(stmt, 0);
+  sqlite3_finalize(stmt);
+
+  sqlite3_prepare_v2(db, "SELECT maxY FROM Parameters", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  maxY = sqlite3_column_double(stmt, 0);
+  sqlite3_finalize(stmt);
 
   /* Read in various parameters */
 
-  fread(&Pa,               sizeof(float), 1, stream);
-  fread(&Pc,               sizeof(float), 1, stream);
-  fread(&edgeLength,       sizeof(float), 1, stream);
-  fread(&sigma,            sizeof(float), 1, stream);
-  fread(&eta,              sizeof(float), 1, stream);
-  fread(&zeta,             sizeof(float), 1, stream);
-  fread(&slopeRate,        sizeof(float), 1, stream);
-  uint16_t maxTriesIn;
-  fread(&maxTriesIn,      sizeof(uint16_t), 1, stream);
-  fread(&riverAngleDev,    sizeof(float), 1, stream);
-  Pa =            float_swap(Pa);
-  Pc =            float_swap(Pc);
-  edgeLength =    float_swap(edgeLength);
-  sigma =         float_swap(sigma);
-  eta =           float_swap(eta);
-  zeta =          float_swap(zeta);
-  slopeRate =     float_swap(slopeRate);
-  maxTries =   (int) be16toh(maxTriesIn);
-  riverAngleDev = float_swap(riverAngleDev);
+  // parse the parameters from input strings
+  Pa = strtof(paIn, NULL);
+  Pc = strtof(pcIn, NULL);
+  sigma = strtof(sigmaIn, NULL);
+  eta = strtof(etaIn, NULL);
+  zeta = strtof(zetaIn, NULL);
+  slopeRate = strtof(slopeRateIn, NULL);
+  maxTries = (int) strtol(maxTriesIn, NULL, 10);
+  riverAngleDev = strtof(riverAngleDevIn, NULL);
+
+  // load the edge length from the Parameters table
+  sqlite3_prepare_v2(db, "SELECT key, value FROM Parameters WHERE key = 'edgelength'", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  edgeLength = sqlite3_column_double(stmt, 1);
+  sqlite3_finalize(stmt);
+
+  // load the resolution from the Parameters table as well
+  sqlite3_prepare_v2(db, "SELECT key, value FROM Parameters WHERE key = 'resolution'", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  resolution = sqlite3_column_double(stmt, 1);
+  sqlite3_finalize(stmt);
 
   hydrology = Hydrology(Point(minX,minY), Point(maxX,maxY), edgeLength);
 
   /* Read in the raster data */
-
-  uint32_t rasterXsize, rasterYsize;
-  fread(&rasterXsize, sizeof(uint32_t), 1, stream);
-  fread(&rasterYsize, sizeof(uint32_t), 1, stream);
-  fread(&resolution, sizeof(float), 1, stream);
-  rasterXsize = be32toh(rasterXsize);
-  rasterYsize = be32toh(rasterYsize);
-  resolution = float_swap(resolution);
-  riverSlope = Raster<float>(rasterYsize, rasterXsize, resolution);
-  float riverSlopeIn;
-  for (uint32_t y = 0; y < rasterYsize; y++)
+  sqlite3_prepare_v2(db, "SELECT x, y, slope FROM RiverSlope", -1, &stmt, NULL);
+  while (sqlite3_step(stmt) == SQLITE_ROW)
   {
-    for (uint32_t x = 0; x < rasterXsize; x++)
-    {
-      fread(&riverSlopeIn, sizeof(float), 1, stream);
-      riverSlope.set(x, y, float_swap(riverSlopeIn));
-    }
+    size_t x = sqlite3_column_int(stmt, 0);
+    size_t y = sqlite3_column_int(stmt, 1);
+    float slope = sqlite3_column_double(stmt, 2);
+    riverSlope.set(x, y, slope);
   }
+  sqlite3_finalize(stmt);
 
   /* read in mouth nodes */
-
-  uint32_t numCandidates;
-  fread(&numCandidates, sizeof(uint32_t), 1, stream);
-  numCandidates = be32toh(numCandidates);
-  for (uint32_t i = 0; i < numCandidates; i++)
+  sqlite3_prepare_v2(db, "SELECT id, priority, contourIndex, X(loc) AS locX, Y(loc) AS locY FROM RiverNodes", -1, &stmt, NULL);
+  while (sqlite3_step(stmt) == SQLITE_ROW)
   {
-    float x, y;
-    uint32_t priority;
-    uint64_t contourIndex;
-
-    fread(&x, sizeof(float), 1, stream);
-    fread(&y, sizeof(float), 1, stream);
-    fread(&priority, sizeof(uint32_t), 1, stream);
-    fread(&contourIndex, sizeof(uint64_t), 1, stream);
-
-    x = float_swap(x);
-    y = float_swap(y);
-    priority = be32toh(priority);
-    contourIndex = be64toh(contourIndex);
-
+    uint64_t id = sqlite3_column_int64(stmt, 0);
+    uint32_t priority = sqlite3_column_int(stmt, 1);
+    uint64_t contourIndex = sqlite3_column_int64(stmt, 2);
+    float x = sqlite3_column_double(stmt, 3);
+    float y = sqlite3_column_double(stmt, 4);
     candidates.push_back(
       hydrology.addMouthNode(
         Point(x,y), 0.0f, priority, contourIndex
@@ -107,26 +104,18 @@ HydrologyParameters::HydrologyParameters(FILE *stream)
   /* Read the contour vector, and encode it in a structure
      that OpenCV will understand
    */
+  // now read in the points
+  sqlite3_prepare_v2(db, "SELECT id, X(loc) AS locX, Y(loc) AS locY FROM Shoreline ORDER BY id", -1, &stmt, NULL);
+  std::vector<Point> contour;
+  while (sqlite3_step(stmt) == SQLITE_ROW)
+  {
+    // FYI, there is an implicit conversion from double to float here
+    // Also, we aren't using the id column, which is 0
+    contour.push_back(Point(sqlite3_column_double(stmt, 1), sqlite3_column_double(stmt, 2)));
+  }
+  sqlite3_finalize(stmt);
 
-  uint64_t contourLength;
-  fread(&contourLength, sizeof(uint64_t), 1, stream);
-  contourLength = be64toh(contourLength);
-  uint64_t inPoints[contourLength][2];
-  fread(inPoints, sizeof(uint64_t), contourLength * 2, stream);
-  #define X 0
-  #define Y 1
-  for (uint64_t i = 0; i < contourLength; i++)
-  {
-    inPoints[i][Y] = be64toh(inPoints[i][Y]);
-    inPoints[i][X] = be64toh(inPoints[i][X]);
-  }
-  std::vector<cv::Point> contour;
-  for (uint64_t i = 0; i < contourLength; i++)
-  {
-    // Points in a contour array are y,x
-    contour.push_back(cv::Point2f(inPoints[i][Y],inPoints[i][X]));
-  }
-  shore = Shore(contour, resolution, rasterXsize, rasterYsize);
+  shore = Shore(contour);
 
   distribution = std::normal_distribution<float>(0.0, riverAngleDev);
 
