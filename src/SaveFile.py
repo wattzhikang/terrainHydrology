@@ -49,9 +49,9 @@ def createRiverSlopeRaster(db: sqlite3.Connection, riverSlope: RasterData) -> No
     with db:
         db.execute('CREATE TABLE RiverSlope (x INTEGER, y INTEGER, slope REAL);')
 
-        for x in range(riverSlope.shape[0]):
-            for y in range(riverSlope.shape[1]):
-                db.execute('INSERT INTO RiverSlope (x, y, slope) VALUES (?, ?, ?)', (x, y, riverSlope.data[x, y]))
+        for x in range(riverSlope.xSize):
+            for y in range(riverSlope.ySize):
+                db.execute('INSERT INTO RiverSlope (x, y, slope) VALUES (?, ?, ?)', (x, y, riverSlope[x, y]))
 
 def dropRiverSlopeRaster(db: sqlite3.Connection) -> None:
     with db:
@@ -62,8 +62,7 @@ def dumpMouthNodes(db: sqlite3.Connection, hydrology: HydrologyNetwork) -> None:
         # db.execute('CREATE TABLE MouthNodes (id INTEGER PRIMARY KEY, x REAL, y REAL, z REAL);')
         db.execute('ALTER TABLE RiverNodes ADD COLUMN priority INTEGER DEFAULT NULL;')
 
-        for node in hydrology.mouthNodes:
-            db.executemany("INSERT INTO RiverNodes (id, priority, contourIndex, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(node.id, node.priority, node.contourIndex, node.x(), node.y()) for node in self.allNodes()])
+        db.executemany("INSERT INTO RiverNodes (id, priority, contourIndex, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(hydrology.node(nodeID).id, hydrology.node(nodeID).priority, hydrology.node(nodeID).contourIndex, hydrology.node(nodeID).x(), hydrology.node(nodeID).y()) for nodeID in hydrology.mouthNodes])
 
 def dropMouthNodes(db: sqlite3.Connection) -> None:
     with db:

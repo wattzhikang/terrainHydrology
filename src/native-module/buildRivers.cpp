@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
   // open the sqlite3 database
   // the path to the database is the first argument
   sqlite3 *db;
-  if (!sqlite3_open_v2(argv[1], &db, SQLITE_OPEN_READWRITE, NULL))
+  if (sqlite3_open_v2(argv[1], &db, SQLITE_OPEN_READWRITE, NULL) != SQLITE_OK)
   {
     fprintf(stderr, "Unable to open the file");
     exit(1);

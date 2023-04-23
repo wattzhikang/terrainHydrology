@@ -237,8 +237,17 @@ try:
         print()
     else: # Generate the hydrology using the native module
         SaveFile.dumpMouthNodes(db, hydrology)
-        proc = subprocess.Popen( # start the native module
-            [buildRiversExe],
+        SaveFile.createRiverSlopeRaster(db, riverSlope)
+        shore.saveToDB(db)
+        # exit() # TMP DEBUG
+        # proc = subprocess.Popen( # start the native module
+        #     [],
+        #     [buildRiversExe],
+        #     stdin=subprocess.PIPE,
+        #     stdout=subprocess.PIPE
+        # )
+        subprocess.Popen( # start the native module
+            [buildRiversExe, outputFile, str(Pa), str(Pc), str(sigma), str(eta), str(zeta), str(slopeRate), str(maxTries), str(riverAngleDev)],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE
         )

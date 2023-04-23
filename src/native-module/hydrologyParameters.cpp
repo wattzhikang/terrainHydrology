@@ -28,22 +28,22 @@ HydrologyParameters::HydrologyParameters(sqlite3 *db, char* paIn, char* pcIn, ch
   float minX, maxX, minY, maxY;
 
   // they are separate records, so we need to query the database for each one
-  sqlite3_prepare_v2(db, "SELECT minX FROM Parameters", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT value FROM Parameters WHERE key='minX'", -1, &stmt, NULL);
   sqlite3_step(stmt);
   minX = sqlite3_column_double(stmt, 0);
   sqlite3_finalize(stmt);
 
-  sqlite3_prepare_v2(db, "SELECT maxX FROM Parameters", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT value FROM Parameters WHERE key='maxX'", -1, &stmt, NULL);
   sqlite3_step(stmt);
   maxX = sqlite3_column_double(stmt, 0);
   sqlite3_finalize(stmt);
 
-  sqlite3_prepare_v2(db, "SELECT minY FROM Parameters", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT value FROM Parameters WHERE key='minY'", -1, &stmt, NULL);
   sqlite3_step(stmt);
   minY = sqlite3_column_double(stmt, 0);
   sqlite3_finalize(stmt);
 
-  sqlite3_prepare_v2(db, "SELECT maxY FROM Parameters", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT value FROM Parameters WHERE key='maxY'", -1, &stmt, NULL);
   sqlite3_step(stmt);
   maxY = sqlite3_column_double(stmt, 0);
   sqlite3_finalize(stmt);
@@ -61,7 +61,7 @@ HydrologyParameters::HydrologyParameters(sqlite3 *db, char* paIn, char* pcIn, ch
   riverAngleDev = strtof(riverAngleDevIn, NULL);
 
   // load the edge length from the Parameters table
-  sqlite3_prepare_v2(db, "SELECT key, value FROM Parameters WHERE key = 'edgelength'", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT key, value FROM Parameters WHERE key = 'edgeLength'", -1, &stmt, NULL);
   sqlite3_step(stmt);
   edgeLength = sqlite3_column_double(stmt, 1);
   sqlite3_finalize(stmt);
@@ -75,6 +75,19 @@ HydrologyParameters::HydrologyParameters(sqlite3 *db, char* paIn, char* pcIn, ch
   hydrology = Hydrology(Point(minX,minY), Point(maxX,maxY), edgeLength);
 
   /* Read in the raster data */
+  //first, figure out the size of the raster by querying the database
+  // find max x and y
+  sqlite3_prepare_v2(db, "SELECT MAX(x) FROM RiverSlope", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  size_t rasterXsize = sqlite3_column_int(stmt, 0) + 1;
+  sqlite3_finalize(stmt);
+
+  sqlite3_prepare_v2(db, "SELECT MAX(y) FROM RiverSlope", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  size_t rasterYsize = sqlite3_column_int(stmt, 0) + 1;
+  sqlite3_finalize(stmt);
+
+  riverSlope = Raster<float>(rasterYsize, rasterXsize, resolution);
   sqlite3_prepare_v2(db, "SELECT x, y, slope FROM RiverSlope", -1, &stmt, NULL);
   while (sqlite3_step(stmt) == SQLITE_ROW)
   {

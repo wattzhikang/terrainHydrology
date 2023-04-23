@@ -178,8 +178,8 @@ class ShoreModel(metaclass=abc.ABCMeta):
         """
         with db:
             db.execute('DELETE FROM Shoreline')
-        # executemany() opens and closes transactions itself, so we don't need to
-        db.executemany("INSERT INTO Shoreline VALUES (?, MakePoint(?, ?, 347895))", [(pointIdx, self[pointIdx][0], self[pointIdx][1]) for pointIdx in range(len(self))])
+            # executemany() opens and closes transactions itself, so we don't need to
+            db.executemany("INSERT INTO Shoreline VALUES (?, MakePoint(?, ?, 347895))", [(pointIdx, self[pointIdx][0], self[pointIdx][1]) for pointIdx in range(len(self))])
     def loadFromDB(self, db: sqlite3.Connection) -> None:
         """Loads the shoreline from a database
 
