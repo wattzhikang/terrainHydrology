@@ -61,21 +61,17 @@ int main(int argc, char* argv[])
     }
   }
   }
+
+  //export outputs
+  params.writeToDatabase(db);
+
+  //free resources
+  sqlite3_close(db);
+
   // signal to the calling program that processing
   // is complete
   fwrite(&allDone, sizeof(uint8_t), 1, stdout);
   fflush(stdout);
-
-
-  //export outputs
-  params.hydrology.writeBinary(stdout);
-  fflush(stdout);
-
-
-  //free resources
-  #ifdef FILEINPUT
-  fclose(INPUT);
-  #endif
 
   return 0;
 }

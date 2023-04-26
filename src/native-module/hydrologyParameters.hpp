@@ -69,6 +69,8 @@ class HydrologyParameters
     void unlockCandidateVector();
     Hydrology hydrology;
 
+    void writeToDatabase(sqlite3 *db);
+
     std::default_random_engine generator;
     std::normal_distribution<float> distribution;
 };

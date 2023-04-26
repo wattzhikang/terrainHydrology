@@ -246,7 +246,7 @@ try:
         #     stdin=subprocess.PIPE,
         #     stdout=subprocess.PIPE
         # )
-        subprocess.Popen( # start the native module
+        proc = subprocess.Popen( # start the native module
             [buildRiversExe, outputFile, str(Pa), str(Pc), str(sigma), str(eta), str(zeta), str(slopeRate), str(maxTries), str(riverAngleDev)],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE

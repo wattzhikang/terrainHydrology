@@ -99,10 +99,9 @@ HydrologyParameters::HydrologyParameters(sqlite3 *db, char* paIn, char* pcIn, ch
   sqlite3_finalize(stmt);
 
   /* read in mouth nodes */
-  sqlite3_prepare_v2(db, "SELECT id, priority, contourIndex, X(loc) AS locX, Y(loc) AS locY FROM RiverNodes", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT id, priority, contourIndex, X(loc) AS locX, Y(loc) AS locY FROM RiverNodes ORDER BY id", -1, &stmt, NULL);
   while (sqlite3_step(stmt) == SQLITE_ROW)
   {
-    uint64_t id = sqlite3_column_int64(stmt, 0);
     uint32_t priority = sqlite3_column_int(stmt, 1);
     uint64_t contourIndex = sqlite3_column_int64(stmt, 2);
     float x = sqlite3_column_double(stmt, 3);
@@ -229,4 +228,50 @@ void HydrologyParameters::lockCandidateVector()
 void HydrologyParameters::unlockCandidateVector()
 {
   omp_unset_lock(&candidateVectorLock);
+}
+
+void HydrologyParameters::writeToDatabase(sqlite3 *db) {
+  sqlite3_stmt *stmt;
+
+  // clear existing nodes from the RiverNodes table
+  sqlite3_prepare_v2(db, "DELETE FROM RiverNodes", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+
+  // prepare to write nodes to the RiverNodes table
+  sqlite3_prepare_v2(db, "INSERT INTO RiverNodes (id, parent, elevation, contourIndex, loc) VALUES (?, ?, ?, ?, MakePoint(?, ?, 347895))", -1, &stmt, NULL);
+
+  // write all river nodes
+  // loop through the hydrology's nodes with a foreach loop
+  for (Primitive *node : hydrology.allNodes()) {
+    // write the node to the database
+    sqlite3_bind_int64(stmt, 1, node->getID());
+    sqlite3_bind_int64(stmt, 3, node->getElevation());
+    sqlite3_bind_int64(stmt, 4, node->getContourIndex());
+    sqlite3_bind_double(stmt, 5, node->getLoc().x());
+    sqlite3_bind_double(stmt, 6, node->getLoc().y());
+
+    // if the node has no parent, then set its parent ID to the node's own ID
+    if (node->getParent() == NULL) {
+      sqlite3_bind_int64(stmt, 2, node->getID());
+    } else {
+      sqlite3_bind_int64(stmt, 2, node->getParent()->getID());
+    }
+
+    // execute the statement
+    int result = sqlite3_step(stmt);
+    // exit with an error if the result was not SQLITE_OK
+    if (result != SQLITE_OK && result != SQLITE_DONE) {
+      std::cerr << "Error writing river node to database: " << sqlite3_errmsg(db) << std::endl;
+      exit(1);
+    }
+
+    // clear the bindings
+    sqlite3_clear_bindings(stmt);
+
+    // reset the statement
+    sqlite3_reset(stmt);
+  }
+
+  sqlite3_finalize(stmt);
 }
