@@ -251,9 +251,10 @@ void HydrologyParameters::writeToDatabase(sqlite3 *db) {
     sqlite3_bind_double(stmt, 5, node->getLoc().x());
     sqlite3_bind_double(stmt, 6, node->getLoc().y());
 
-    // if the node has no parent, then set its parent ID to the node's own ID
+    // if the node has no parent, bind NULL to the parent column
+    // in sqlite3, that has to be done with a special function
     if (node->getParent() == NULL) {
-      sqlite3_bind_int64(stmt, 2, node->getID());
+      sqlite3_bind_null(stmt, 2);
     } else {
       sqlite3_bind_int64(stmt, 2, node->getParent()->getID());
     }

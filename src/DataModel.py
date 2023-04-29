@@ -357,20 +357,29 @@ class HydrologyNetwork:
         self.mouthNodes = []
 
         if db is not None:
-            self._initFromDB(db)
-    def loadFromDB(self, db: sqlite3.Connection) -> None:
+            self._loadFromDB(db)
+    def _loadFromDB(self, db: sqlite3.Connection) -> None:
         db.row_factory = sqlite3.Row
 
         allpoints_list = [ ]
 
-        for row in db.execute('SELECT id, parent, elevation, localwatershed, inheritedwatershed, flow, X(loc) AS xLoc, Y(loc) AS yLoc FROM RiverNodes'):
+        for row in db.execute('SELECT id, parent, elevation, localwatershed, inheritedwatershed, flow, X(loc) AS xLoc, Y(loc) AS yLoc FROM RiverNodes ORDER BY id'):
             id = row['id']
-            parent = row['parent']
+            parentID = row['parent']
             elevation = row['elevation']
             localWatershed = row['localWatershed']
             inheritedWatershed = row['inheritedWatershed']
             flow = row['flow']
             x, y = row['xLoc'], row['yLoc']
+
+            # TMP DEBUG
+            if parentID == 0:
+                breakpoint()
+
+            # get the node's parent by ID
+            parent = None
+            if parentID is not None:
+                parent = self.graph.nodes[parentID]['primitive']
 
             # get the rivers of the node
             rivers = [ ]
@@ -389,10 +398,10 @@ class HydrologyNetwork:
 
             self.graph.add_node(id, primitive=node)
 
-            if parent is None:
+            if parentID is None:
                 self.mouthNodes.append(id)
             else:
-                self.graph.add_edge(parent, id)
+                self.graph.add_edge(parentID, id)
 
         self.graphkd = cKDTree(allpoints_list)
     def saveToDB(self, db: sqlite3.Connection) -> None:

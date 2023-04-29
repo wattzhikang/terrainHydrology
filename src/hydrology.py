@@ -239,13 +239,6 @@ try:
         SaveFile.dumpMouthNodes(db, hydrology)
         SaveFile.createRiverSlopeRaster(db, riverSlope)
         shore.saveToDB(db)
-        # exit() # TMP DEBUG
-        # proc = subprocess.Popen( # start the native module
-        #     [],
-        #     [buildRiversExe],
-        #     stdin=subprocess.PIPE,
-        #     stdout=subprocess.PIPE
-        # )
         proc = subprocess.Popen( # start the native module
             [buildRiversExe, outputFile, str(Pa), str(Pc), str(sigma), str(eta), str(zeta), str(slopeRate), str(maxTries), str(riverAngleDev)],
             stdin=subprocess.PIPE,
@@ -265,11 +258,10 @@ try:
             cyclesRun = cyclesRun + 1
         end = datetime.datetime.now()
         print()
-        SaveFile.dropMouthNodes(db)
 
         # Recreate hydrology with data from the native module
         print('\tReading data...')
-        hydrology = DataModel.HydrologyNetwork(stream=proc.stdout)
+        hydrology = DataModel.HydrologyNetwork(db)
 
     print(f'\tGenerated {len(hydrology)} nodes in {(end-start).total_seconds()} seconds')
     print(f'\tRate: {len(hydrology)/(end-start).total_seconds()} node/sec')
