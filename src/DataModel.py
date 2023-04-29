@@ -969,7 +969,6 @@ class Terrain:
         for row in db.execute("SELECT rivercell, elevation, X(loc) AS locX, Y(loc) AS locY FROM Ts"):
             t = T((row["locX"], row["locY"]), row["rivercell"])
             t.elevation = row["elevation"]
-            self.tList.append(t)
             if row["rivercell"] not in self.cellTsDict:
                 self.cellTsDict[row["rivercell"]] = [ ]
             self.cellTsDict[row["rivercell"]].append(t)
@@ -979,9 +978,9 @@ class Terrain:
         allpoints_nd = np.array(allpoints_list)
         self.apkd = cKDTree(allpoints_nd)
     def saveToDB(self, db: sqlite3.Connection):
-        db.execute("DELETE FROM Ts")
-        db.executemany("INSERT INTO Ts (id, rivercell, elevation, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(idx, t.cell, t.elevation, t.position[0], t.position[1]) for idx, t in enumerate(self.tList)])
-        db.commit() # TODO: This might not be necessary
+        with db:
+            db.execute("DELETE FROM Ts")
+            db.executemany("INSERT INTO Ts (id, rivercell, elevation, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(idx, t.cell, t.elevation, t.position[0], t.position[1]) for idx, t in enumerate(self.tList)])
     def allTs(self) -> typing.List[T]:
         """Simply returns all the terrain primitives
 

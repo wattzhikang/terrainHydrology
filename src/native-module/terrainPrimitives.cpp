@@ -271,14 +271,24 @@ PrimitiveParameters::PrimitiveParameters(sqlite3 *db, GEOSContextHandle_t geosCo
 }
 
 void PrimitiveParameters::writeToDatabase(sqlite3 *db) {
-  // use an UPDATE statement to update the elevation of a T
   sqlite3_stmt *stmt;
-  sqlite3_prepare_v2(db, "UPDATE Ts SET elevation = ? WHERE id = ?", -1, &stmt, NULL);
+
+  // clear existing records from the Ts table
+  sqlite3_prepare_v2(db, "DELETE FROM Ts", -1, &stmt, NULL);
+  sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+
+  // write to the Ts table
+  sqlite3_prepare_v2(db, "INSERT INTO Ts (id, rivercell, elevation, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", -1, &stmt, NULL);
 
   for (size_t i = 0; i < ts.numTs(); i++)
   {
-    sqlite3_bind_double(stmt, 1, ts.getT(i).getElevation());
-    sqlite3_bind_int64(stmt, 2, i);
+    // bind the values
+    sqlite3_bind_int64(stmt, 1, i);
+    sqlite3_bind_int64(stmt, 2, ts.getT(i).getCellID());
+    sqlite3_bind_double(stmt, 3, ts.getT(i).getElevation());
+    sqlite3_bind_double(stmt, 4, ts.getT(i).getLoc().x());
+    sqlite3_bind_double(stmt, 5, ts.getT(i).getLoc().y());
 
     // execute the statement
     int result = sqlite3_step(stmt);
