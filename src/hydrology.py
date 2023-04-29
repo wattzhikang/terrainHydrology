@@ -274,7 +274,7 @@ except Exception as e:
     shore.saveToDB(db)
     hydrology.saveToDB(db)
 
-    db.dropRiverSlopeRaster()
+    SaveFile.dropRiverSlopeRaster(db)
 
     db.close()
 
@@ -319,7 +319,7 @@ except Exception as e:
     hydrology.saveToDB(db)
     cells.saveToDB(db)
 
-    db.dropRiverSlopeRaster()
+    SaveFile.dropRiverSlopeRaster(db)
 
     db.close()
 
@@ -346,7 +346,7 @@ except Exception as ex:
     hydrology.saveToDB(db)
     cells.saveToDB(db)
 
-    db.dropRiverSlopeRaster()
+    SaveFile.dropRiverSlopeRaster(db)
 
     db.close()
 
@@ -404,8 +404,6 @@ try:
             stdout=subprocess.PIPE
         )
 
-        exit() # TMP DEBUG
-
         # Display updates as native module calculates the elevations
         for tid in trange(len(Ts)):
             readByte = primitivesProc.stdout.read(1)
@@ -425,7 +423,7 @@ except Exception as e:
     hydrology.saveToDB(db)
     cells.saveToDB(db)
 
-    db.dropRiverSlopeRaster()
+    SaveFile.dropRiverSlopeRaster(db)
 
     db.close()
 
@@ -437,7 +435,7 @@ shore.saveToDB(db)
 hydrology.saveToDB(db)
 cells.saveToDB(db)
 Ts.saveToDB(db)
-db.dropRiverSlopeRaster()
+SaveFile.dropRiverSlopeRaster(db)
 db.close() # TODO This should be implemented as a context manager
 print('Complete')
 

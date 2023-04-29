@@ -259,14 +259,14 @@ PrimitiveParameters::PrimitiveParameters(sqlite3 *db, GEOSContextHandle_t geosCo
     Read in the terrain primitives
   */
   // read these in from the Ts table
-  sqlite3_prepare_v2(db, "SELECT id, X(loc) AS locX, Y(loc) AS locY FROM Ts", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT rivercell, X(loc) AS locX, Y(loc) AS locY FROM Ts", -1, &stmt, NULL);
   while (sqlite3_step(stmt) == SQLITE_ROW)
   {
-    uint64_t saveID = sqlite3_column_int64(stmt, 0);
+    uint64_t riverCell = sqlite3_column_int64(stmt, 0);
     float x = sqlite3_column_double(stmt, 1);
     float y = sqlite3_column_double(stmt, 2);
 
-    ts.dumpT(Point(x,y), saveID);
+    ts.dumpT(Point(x,y), riverCell);
   }
 }
 

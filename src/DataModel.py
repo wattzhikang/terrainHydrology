@@ -980,7 +980,7 @@ class Terrain:
         self.apkd = cKDTree(allpoints_nd)
     def saveToDB(self, db: sqlite3.Connection):
         db.execute("DELETE FROM Ts")
-        db.executemany("INSERT INTO Ts (rivercell, elevation, loc) VALUES (?, ?, MakePoint(?, ?, 347895))", [(t.cell, t.elevation, t.position[0], t.position[1]) for t in self.tList])
+        db.executemany("INSERT INTO Ts (id, rivercell, elevation, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(idx, t.cell, t.elevation, t.position[0], t.position[1]) for idx, t in enumerate(self.tList)])
         db.commit() # TODO: This might not be necessary
     def allTs(self) -> typing.List[T]:
         """Simply returns all the terrain primitives
