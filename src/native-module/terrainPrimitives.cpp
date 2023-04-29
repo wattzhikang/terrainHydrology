@@ -18,10 +18,10 @@ PrimitiveParameters::PrimitiveParameters(sqlite3 *db, GEOSContextHandle_t geosCo
 
   sqlite3_stmt *stmt;
 
-  // load edgeLength from the Parameters table
-  sqlite3_prepare_v2(db, "SELECT key, value FROM Parameters WHERE key='EdgeLength';", -1, &stmt, NULL);
+  // load the edge length from the Parameters table
+  sqlite3_prepare_v2(db, "SELECT key, value FROM Parameters WHERE key = 'edgeLength'", -1, &stmt, NULL);
   sqlite3_step(stmt);
-  edgeLength = sqlite3_column_double(stmt, 0);
+  edgeLength = sqlite3_column_double(stmt, 1);
   sqlite3_finalize(stmt);
 
   // load resolution from the Parameters table
@@ -34,22 +34,22 @@ PrimitiveParameters::PrimitiveParameters(sqlite3 *db, GEOSContextHandle_t geosCo
   float minX, maxX, minY, maxY;
 
   // they are separate records, so we need to query the database for each one
-  sqlite3_prepare_v2(db, "SELECT minX FROM Parameters", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT value FROM Parameters WHERE key='minX'", -1, &stmt, NULL);
   sqlite3_step(stmt);
   minX = sqlite3_column_double(stmt, 0);
   sqlite3_finalize(stmt);
 
-  sqlite3_prepare_v2(db, "SELECT maxX FROM Parameters", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT value FROM Parameters WHERE key='maxX'", -1, &stmt, NULL);
   sqlite3_step(stmt);
   maxX = sqlite3_column_double(stmt, 0);
   sqlite3_finalize(stmt);
 
-  sqlite3_prepare_v2(db, "SELECT minY FROM Parameters", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT value FROM Parameters WHERE key='minY'", -1, &stmt, NULL);
   sqlite3_step(stmt);
   minY = sqlite3_column_double(stmt, 0);
   sqlite3_finalize(stmt);
 
-  sqlite3_prepare_v2(db, "SELECT maxY FROM Parameters", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT value FROM Parameters WHERE key='maxY'", -1, &stmt, NULL);
   sqlite3_step(stmt);
   maxY = sqlite3_column_double(stmt, 0);
   sqlite3_finalize(stmt);
@@ -79,7 +79,7 @@ PrimitiveParameters::PrimitiveParameters(sqlite3 *db, GEOSContextHandle_t geosCo
   sqlite3_stmt *riverRecords;
   sqlite3_prepare_v2(db, "SELECT id, rivernode, AsBinary(geometry) FROM Rivers WHERE rivernode = ?", -1, &riverRecords, NULL);
 
-  sqlite3_prepare_v2(db, "SELECT id, X(loc) AS locX, Y(loc) AS locY, elevation, parent, contourIndex, localwatershed, inheritedwatershed, flow FROM RiverNodes", -1, &stmt, NULL);
+  sqlite3_prepare_v2(db, "SELECT id, X(loc) AS locX, Y(loc) AS locY, elevation, parent, contourIndex, localwatershed, inheritedwatershed, flow FROM RiverNodes ORDER BY id", -1, &stmt, NULL);
   while (sqlite3_step(stmt) == SQLITE_ROW)
   {
     uint32_t nodeID = sqlite3_column_int(stmt, 0);
@@ -268,4 +268,32 @@ PrimitiveParameters::PrimitiveParameters(sqlite3 *db, GEOSContextHandle_t geosCo
 
     ts.dumpT(Point(x,y), saveID);
   }
+}
+
+void PrimitiveParameters::writeToDatabase(sqlite3 *db) {
+  // use an UPDATE statement to update the elevation of a T
+  sqlite3_stmt *stmt;
+  sqlite3_prepare_v2(db, "UPDATE Ts SET elevation = ? WHERE id = ?", -1, &stmt, NULL);
+
+  for (size_t i = 0; i < ts.numTs(); i++)
+  {
+    sqlite3_bind_double(stmt, 1, ts.getT(i).getElevation());
+    sqlite3_bind_int64(stmt, 2, i);
+
+    // execute the statement
+    int result = sqlite3_step(stmt);
+    if (result != SQLITE_OK && result != SQLITE_DONE)
+    {
+      fprintf(stderr, "Error updating T elevation: %s\n", sqlite3_errmsg(db));
+      exit(1);
+    }
+
+    // clear the bindings
+    sqlite3_clear_bindings(stmt);
+
+    // reset the statement
+    sqlite3_reset(stmt);
+  }
+
+  sqlite3_finalize(stmt);
 }

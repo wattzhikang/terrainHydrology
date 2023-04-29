@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
   // open the sqlite3 database
   // the path to the database is the first argument
   sqlite3 *db;
-  if (!sqlite3_open_v2(argv[1], &db, SQLITE_OPEN_READWRITE, NULL))
+  if (sqlite3_open_v2(argv[1], &db, SQLITE_OPEN_READWRITE, NULL) != SQLITE_OK)
   {
     fprintf(stderr, "Unable to open the file");
     exit(1);
@@ -54,21 +54,14 @@ int main(int argc, char* argv[])
   fwrite(&allDone, sizeof(uint8_t), 1, stdout);
   fflush(stdout);
 
-  // write results
-  for (size_t i = 0; i < params.ts.numTs(); i++)
-  {
-    float elev = params.ts.getT(i).getElevation();
-    elev = float_tobe(elev);
-    fwrite(&elev, sizeof(float), 1, stdout);
-    fflush(stdout);
-  }
+  //export outputs
+  params.writeToDatabase(db);
+
+  //free resources
+  sqlite3_close(db);
 
   for (GEOSContextHandle_t geosContext : geosContexts)
   {
     GEOS_finish_r(geosContext);
   }
-  
-  #ifdef FILEINPUT
-  fclose(input);
-  #endif
 }

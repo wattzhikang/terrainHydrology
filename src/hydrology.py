@@ -393,16 +393,18 @@ try:
             processes[p].join()
             pipes[p][0].close()
     else:
-        # # Write the binary data to a file
-        # with open('src/native-module/bin/binaryFile', 'w+b') as file:
-        #     SaveFile.writeToTerrainModule(file, shore, edgeLength, hydrology, cells, Ts)
-        #     file.close()
+        # Save necessary information to the database
+        hydrology.saveToDB(db)
+        cells.saveToDB(db)
+        Ts.saveToDB(db)
 
         # Run the native module
         primitivesProc = subprocess.Popen( # start the native module
-            ['./' + computePrimitivesExe + outputFile],
+            [computePrimitivesExe, outputFile],
             stdout=subprocess.PIPE
         )
+
+        exit() # TMP DEBUG
 
         # Display updates as native module calculates the elevations
         for tid in trange(len(Ts)):
@@ -410,12 +412,9 @@ try:
         readByte = primitivesProc.stdout.read(1)
         assert struct.unpack('B',readByte)[0] == 0x21
 
-        for t in Ts.allTs():
-            readByte = primitivesProc.stdout.read(struct.calcsize('!f'))
-            t.elevation = struct.unpack('!f', readByte)[0]
-
-        # clean up
-        # os.remove('src/binaryFile')
+        # Recreate the terrain primitives with data from the native module
+        Ts = DataModel.Terrain()
+        Ts.loadFromDB(db)
 
 except Exception as e:
     print('Problem encountered in generating the terrain primitives. Saving shore model, hydrology network, and terrain cells to export file.')

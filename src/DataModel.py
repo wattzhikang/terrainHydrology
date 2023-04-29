@@ -372,10 +372,6 @@ class HydrologyNetwork:
             flow = row['flow']
             x, y = row['xLoc'], row['yLoc']
 
-            # TMP DEBUG
-            if parentID == 0:
-                breakpoint()
-
             # get the node's parent by ID
             parent = None
             if parentID is not None:
@@ -951,6 +947,7 @@ class T:
     def __init__(self, position, cell):
         self.position = position
         self.cell = cell
+        self.elevation = None
 
 class Terrain:
     """Holds and organizes the terrain primitives (:class:`T`)
@@ -984,7 +981,7 @@ class Terrain:
     def saveToDB(self, db: sqlite3.Connection):
         db.execute("DELETE FROM Ts")
         db.executemany("INSERT INTO Ts (rivercell, elevation, loc) VALUES (?, ?, MakePoint(?, ?, 347895))", [(t.cell, t.elevation, t.position[0], t.position[1]) for t in self.tList])
-        db.commit()
+        db.commit() # TODO: This might not be necessary
     def allTs(self) -> typing.List[T]:
         """Simply returns all the terrain primitives
 

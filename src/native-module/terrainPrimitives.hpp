@@ -33,6 +33,8 @@ public:
    */
   PrimitiveParameters(sqlite3 *db, GEOSContextHandle_t geosContext);
   ~PrimitiveParameters() = default;
+
+  void writeToDatabase(sqlite3 *db);
 };
 
 #endif
