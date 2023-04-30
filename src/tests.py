@@ -3,6 +3,8 @@
 import unittest
 from unittest.mock import Mock
 
+import io
+
 import shapefile
 from PIL import Image
 from PIL import ImageDraw
@@ -16,6 +18,8 @@ import Math
 from TerrainPrimitiveFunctions import computePrimitiveElevation
 from RiverInterpolationFunctions import computeRivers
 import TerrainHoneycombFunctions
+
+import SaveFile
 
 import testcodegenerator
 from testcodegenerator import RasterDataMock
@@ -994,3 +998,68 @@ class TerrainTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         os.remove('imageFile.png')
+
+class SaveFileShoreLoadTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.shape = [ [0,-437], [35,-113], [67,-185], [95,-189], [70,-150], [135,-148], [157,44], [33,77], [-140,8], [0,-437] ]
+
+        self.db = SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        with self.db:
+            self.db.executemany('INSERT INTO Shoreline VALUES (?, MakePoint(?, ?, 347895))', [ (idx, x, y) for idx, (x,y) in enumerate(self.shape) ])
+
+        self.shore = ShoreModelShapefile()
+        self.shore.loadFromDB(self.db)
+    
+    def test_loadLength0(self) -> None:
+        self.assertEqual(len(self.shape), len(self.shore))
+    
+    def tearDown(self) -> None:
+        self.db.close()
+
+class SaveFileShoreSaveTests(unittest.TestCase):
+    def setUp(self) -> None:
+        shpBuf = io.BytesIO()
+        dbfBuf = io.BytesIO()
+
+        with shapefile.Writer(shp=shpBuf, dbf=dbfBuf, shapeType=5) as shp:
+            #         0         1          2          3          4          5           6         7        8         (beginning)
+            shape = [ [0,-437], [35,-113], [67,-185], [95,-189], [70,-150], [135,-148], [157,44], [33,77], [-140,8], [0,-437] ]
+            shape.reverse() # pyshp expects shapes to be clockwise
+
+            shp.field('name', 'C')
+
+            shp.poly([ shape ])
+            shp.record('polygon0')
+
+        self.shore = ShoreModelShapefile(shpFile=shpBuf, dbfFile=dbfBuf)
+
+        self.db = SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        self.shore.saveToDB(self.db)
+
+    def test_save0(self) -> None:
+        with self.db:
+            rowCount = self.db.execute('SELECT COUNT(*) FROM Shoreline').fetchone()[0]
+            self.assertEqual(len(self.shore), rowCount)
+    
+    def tearDown(self) -> None:
+        self.db.close()
+
+# class SaveFileTests(unittest.TestCase):
+#     def shore_save_0_test(self) -> None:
+#         pass
+#     def shore_load_0_test(self) -> None:
+
+
+#         self.assertEqual(len(shape), len(shore))
+#     def hydrology_save_0_test(self) -> None:
+#         pass
+#     def hydrology_load_0_test(self) -> None:
+#         pass
+#     def honeycomb_save_0_test(self) -> None:
+#         pass
+#     def honeycomb_load_0_test(self) -> None:
+#         pass
+#     def terrain_save_0_test(self) -> None:
+#         pass
+#     def terrain_load_0_test(self) -> None:
+#         pass

@@ -179,7 +179,7 @@ class ShoreModel(metaclass=abc.ABCMeta):
         with db:
             db.execute('DELETE FROM Shoreline')
             # executemany() opens and closes transactions itself, so we don't need to
-            db.executemany("INSERT INTO Shoreline VALUES (?, MakePoint(?, ?, 347895))", [(pointIdx, self[pointIdx][0], self[pointIdx][1]) for pointIdx in range(len(self))])
+            db.executemany("INSERT INTO Shoreline (id, loc) VALUES (?, MakePoint(?, ?, 347895))", [(idx, float(point[0]), float(point[1])) for idx, point in enumerate(self)])
     def loadFromDB(self, db: sqlite3.Connection) -> None:
         """Loads the shoreline from a database
 
@@ -256,12 +256,18 @@ class ShoreModelImage(ShoreModel):
         return fromImageCoordinates((self.contour[index][1],self.contour[index][0]), self.imgray.shape, self.resolution)
 
 class ShoreModelShapefile(ShoreModel):
-    def __init__(self, inputFileName: str=None) -> None:
-        if inputFileName is None:
+    def __init__(self, inputFileName: str=None, shpFile=None, dbfFile=None) -> None:
+        reader = None
+
+        if inputFileName is not None:
+            reader = shapefile.Reader(inputFileName, shapeType=5)
+        elif shpFile is not None and dbfFile is not None:
+            reader = shapefile.Reader(shp=shpFile, dbf=dbfFile, shapeType=5)
+        else:
             return
 
-        with shapefile.Reader(inputFileName, shapeType=5) as shp:
-            self.contour = shp.shape(0).points[1:] # the first and last points are identical, so remove them
+        with reader:
+            self.contour = reader.shape(0).points[1:] # the first and last points are identical, so remove them
             self.contour.reverse() # pyshp stores shapes in clockwise order, but we want counterclockwise
             self.contour = np.array(self.contour, dtype=np.dtype(np.float32))
 
