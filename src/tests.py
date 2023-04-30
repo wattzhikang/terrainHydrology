@@ -1044,6 +1044,54 @@ class SaveFileShoreSaveTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.db.close()
 
+class SaveFileHydrologyLoadTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.db = SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        with self.db:
+            self.db.execute('INSERT INTO RiverNodes VALUES (0, NULL,  0,  0, 30, 32, NULL, MakePoint(0, 0, 347895))')
+            self.db.execute('INSERT INTO RiverNodes VALUES (1,    0, 10, 10, 10, 16, NULL, MakePoint(0, 0, 347895))')
+            self.db.execute('INSERT INTO RiverNodes VALUES (2,    0, 12, 10, 10, 16, NULL, MakePoint(0, 0, 347895))')
+        
+        self.hydrology = HydrologyNetwork(self.db)
+
+    def test_load0(self) -> None:
+        self.assertEqual(3, len(self.hydrology))
+        
+        self.assertEqual(0, self.hydrology.node(2).parent.id)
+        self.assertEqual(0, self.hydrology.node(1).parent.id)
+
+    def tearDown(self) -> None:
+        self.db.close()
+
+class SaveFileHydrologySaveTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.hydrology = HydrologyNetwork()
+
+        node0 = self.hydrology.addNode((0, 0), 0, 0)
+        node1 = self.hydrology.addNode((0, 0), 10, 0, parent=node0)
+        node2 = self.hydrology.addNode((0, 0), 12, 0, parent=node0)
+
+        node0.localWatershed = 10
+        node1.localWatershed = 10
+        node2.localWatershed = 10
+        node0.inheritedWatershed = 30
+        node1.inheritedWatershed = 10
+        node2.inheritedWatershed = 10
+        node0.flow = 32
+        node1.flow = 16
+        node2.flow = 16
+
+        self.db = SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        self.hydrology.saveToDB(self.db)
+
+    def test_save0(self) -> None:
+        with self.db:
+            rowCount = self.db.execute('SELECT COUNT(*) FROM RiverNodes').fetchone()[0]
+            self.assertEqual(len(self.hydrology), rowCount)
+    
+    def tearDown(self) -> None:
+        self.db.close()
+
 # class SaveFileTests(unittest.TestCase):
 #     def shore_save_0_test(self) -> None:
 #         pass
