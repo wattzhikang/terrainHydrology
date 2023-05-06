@@ -15,10 +15,7 @@ class Shore {
         /**
          * @brief Construct a new Shore object
          * 
-         * @param contour The openCV contour that represents the shoreline
-         * @param resolution The resolution of the original shore input image in meters per pixel
-         * @param rasterXsize The width of the original shore image in pixels
-         * @param rasterYsize The height of the original shore image in pixels
+         * @param contour All the points that make up the shore
          */
         Shore(std::vector<Point> contour);
 

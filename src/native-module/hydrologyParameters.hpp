@@ -23,20 +23,27 @@ class HydrologyParameters
     public:
     HydrologyParameters();
     /**
-     * @brief Construct a new Hydrology Parameters object
+     * @brief Construct a blank Hydrology Parameters object
      * 
      * @param lowerLeft The lower left corner of the expected area
      * @param upperRight The upper right corner of the expected area
      */
     HydrologyParameters(Point lowerLeft, Point upperRight);
     /**
-     * @brief Construct a new Hydrology Parameters object with binary parameters coming from a stream
+     * @brief Construct a new Hydrology Parameters object from a database
      * 
-     * The stream should feed in all the parameters, including the
-     * raster data.
+     * The databse should be properly set up with all the parameters, including
+     * the raster data.
      * 
-     * TODO: This is now wrong
-     * @param stream A FILE stream, either stdin or a file containing the binary data
+     * @param db The database to read the parameters from
+     * @param paIn The Pa parameter as a string
+     * @param pcIn The Pc parameter as a string
+     * @param sigmaIn The sigma parameter as a string
+     * @param etaIn The eta parameter as a string
+     * @param zetaIn The zeta parameter as a string
+     * @param slopeRateIn The slope rate parameter as a string
+     * @param maxTriesIn The maximum number of tries parameter as a string
+     * @param riverAngleDevIn The river angle standard deviation parameter as a string
      */
     HydrologyParameters(sqlite3 *db, char* paIn, char* pcIn, char* sigmaIn, char* etaIn, char* zetaIn, char* slopeRateIn, char* maxTriesIn, char* riverAngleDevIn);
     ~HydrologyParameters();
@@ -69,6 +76,11 @@ class HydrologyParameters
     void unlockCandidateVector();
     Hydrology hydrology;
 
+    /**
+     * @brief Writes the nodes that have been generated to the database
+     * 
+     * @param db The database to write to
+     */
     void writeToDatabase(sqlite3 *db);
 
     std::default_random_engine generator;

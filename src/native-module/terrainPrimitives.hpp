@@ -28,12 +28,17 @@ public:
   /**
    * @brief Construct a new Primitive Parameters object
    * 
-   * @param stream A stream from which to receive the data
+   * @param db The database to read the context from
    * @param geosContext A GEOSContextHandle will be needed to re-encode the rivers
    */
   PrimitiveParameters(sqlite3 *db, GEOSContextHandle_t geosContext);
   ~PrimitiveParameters() = default;
 
+  /**
+   * @brief Writes the terrain primitive elevations to the database
+   * 
+   * @param db The database to write to
+   */
   void writeToDatabase(sqlite3 *db);
 };
 
