@@ -1019,9 +1019,10 @@ class SaveFileShoreLoadTests(unittest.TestCase):
 class SaveFileShoreSaveTests(unittest.TestCase):
     def setUp(self) -> None:
         shpBuf = io.BytesIO()
+        shxBuf = io.BytesIO()
         dbfBuf = io.BytesIO()
 
-        with shapefile.Writer(shp=shpBuf, dbf=dbfBuf, shapeType=5) as shp:
+        with shapefile.Writer(shp=shpBuf, shx=shxBuf, dbf=dbfBuf, shapeType=5) as shp:
             #         0         1          2          3          4          5           6         7        8         (beginning)
             shape = [ [0,-437], [35,-113], [67,-185], [95,-189], [70,-150], [135,-148], [157,44], [33,77], [-140,8], [0,-437] ]
             shape.reverse() # pyshp expects shapes to be clockwise
@@ -1031,7 +1032,7 @@ class SaveFileShoreSaveTests(unittest.TestCase):
             shp.poly([ shape ])
             shp.record('polygon0')
 
-        self.shore = ShoreModelShapefile(shpFile=shpBuf, dbfFile=dbfBuf)
+        self.shore = ShoreModelShapefile(shpFile=shpBuf, shxFile=shxBuf, dbfFile=dbfBuf)
 
         self.db = SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
         self.shore.saveToDB(self.db)
@@ -1089,6 +1090,123 @@ class SaveFileHydrologySaveTests(unittest.TestCase):
             rowCount = self.db.execute('SELECT COUNT(*) FROM RiverNodes').fetchone()[0]
             self.assertEqual(len(self.hydrology), rowCount)
     
+    def tearDown(self) -> None:
+        self.db.close()
+
+class SaveFileHoneycombLoadTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.db = SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        with self.db:
+            self.db.execute('INSERT INTO RiverNodes VALUES (0, NULL,  0,  0, 30, 32, NULL, MakePoint(0, 0, 347895))')
+            self.db.execute('INSERT INTO RiverNodes VALUES (1,    0, 10, 10, 10, 16, NULL, MakePoint(1850, 500, 347895))')
+            self.db.execute('INSERT INTO RiverNodes VALUES (2,    0, 12, 10, 10, 16, NULL, MakePoint(700, 1750, 347895))')
+
+            self.db.execute('INSERT INTO Qs VALUES (0, 50, MakePoint(750, 750, 347895))')
+            self.db.execute('INSERT INTO Qs VALUES (1, 50, MakePoint(-250, 1250, 347895))')
+            self.db.execute('INSERT INTO Qs VALUES (2, 50, MakePoint(1000, -250, 347895))')
+            self.db.execute('INSERT INTO Qs VALUES (3, 50, MakePoint(1750, 1750, 347895))')
+
+            self.db.execute('INSERT INTO Cells (rivernode, polygonorder, q) VALUES (0, 0, 2)')
+            self.db.execute('INSERT INTO Cells (rivernode, polygonorder, q) VALUES (0, 1, 0)')
+            self.db.execute('INSERT INTO Cells (rivernode, polygonorder, q) VALUES (0, 2, 1)')
+            self.db.execute('INSERT INTO Cells (rivernode, polygonorder, q) VALUES (1, 0, 3)')
+            self.db.execute('INSERT INTO Cells (rivernode, polygonorder, q) VALUES (1, 1, 0)')
+            self.db.execute('INSERT INTO Cells (rivernode, polygonorder, q) VALUES (1, 2, 2)')
+            self.db.execute('INSERT INTO Cells (rivernode, polygonorder, q) VALUES (2, 0, 1)')
+            self.db.execute('INSERT INTO Cells (rivernode, polygonorder, q) VALUES (2, 1, 0)')
+            self.db.execute('INSERT INTO Cells (rivernode, polygonorder, q) VALUES (2, 2, 3)')
+
+            self.db.execute('INSERT INTO Edges VALUES (0, 2, 0, 1, 0, NULL, NULL)')
+            self.db.execute('INSERT INTO Edges VALUES (1, 0, 1, 1, 0, NULL, NULL)')
+            self.db.execute('INSERT INTO Edges VALUES (2, 3, 0, 1, 0, NULL, NULL)')
+
+        shore = Mock()
+        hydrology = Mock()
+
+        self.cells = TerrainHoneycomb()
+        self.cells.loadFromDB(2000, 2000, shore, hydrology, self.db)
+
+    def test_load0(self) -> None:
+        vertices = self.cells.cellVertices(0)
+
+        self.assertEqual(3, len(vertices))
+        self.assertTrue((750, 750) in vertices)
+        self.assertTrue((1000, -250) in vertices)
+        self.assertTrue((-250, 1250) in vertices)
+        self.assertTrue((1750, 1750) not in vertices)
+
+    def tearDown(self) -> None:
+        self.db.close()
+
+class SaveFileHoneycombSaveTests(unittest.TestCase):
+    def setUp(self) -> None:
+        shpBuf = io.BytesIO()
+        shxBuf = io.BytesIO()
+        dbfBuf = io.BytesIO()
+
+        with shapefile.Writer(shp=shpBuf, shx=shxBuf, dbf=dbfBuf, shapeType=5) as shp:
+            #         0                 1              2                  3                 4             5           (beginning)
+            shape = [(-4623.8,6201.5), (-9299.9,0.0), (-4629.4,-8124.4), (4751.4,-8114.7), (9417.8,0.0), (4741,6209), (-4623.8,6201.5) ]
+            shape.reverse() # pyshp expects shapes to be clockwise
+
+            shp.field('name', 'C')
+
+            shp.poly([ shape ])
+            shp.record('polygon0')
+        self.shore = ShoreModelShapefile(shpFile=shpBuf, dbfFile=dbfBuf, shxFile=shxBuf)
+
+        self.hydrology = HydrologyNetwork()
+
+        self.hydrology.addNode((-7768.799999999999, 2059.2), 0, 2, contourIndex=44) # ID: 0
+        self.hydrology.addNode((-8049.599999999999, -2246.3999999999996), 0, 1, contourIndex=90) # ID: 1
+        self.hydrology.addNode((-5054.4, -7394.4), 0, 1, contourIndex=145) # ID: 2
+        self.hydrology.addNode((1123.1999999999998, -8049.599999999999), 0, 1, contourIndex=214) # ID: 3
+        self.hydrology.addNode((4305.599999999999, -8049.599999999999), 0, 1, contourIndex=248) # ID: 4
+        self.hydrology.addNode((6458.4, -5054.4), 0, 1, contourIndex=284) # ID: 5
+        self.hydrology.addNode((8049.599999999999, 1684.8), 0, 1, contourIndex=356) # ID: 6
+        self.hydrology.addNode((6832.799999999999, 3369.6), 0, 1, contourIndex=374) # ID: 7
+        self.hydrology.addNode((280.79999999999995, 6177.599999999999), 0, 2, contourIndex=451) # ID: 8
+        self.hydrology.addNode((-4867.2, 5990.4), 0, 1, contourIndex=2) # ID: 9
+        self.hydrology.addNode((-6246.780372888135, 307.5788923724788), 173.81, 2, parent=self.hydrology.node(0)) # ID: 10
+        self.hydrology.addNode((-5449.5362946522855, 2134.9371444985295), 173.81, 1, parent=self.hydrology.node(0)) # ID: 11
+        self.hydrology.addNode((-5738.2285044404125, -2452.02601857411), 173.81, 1, parent=self.hydrology.node(1)) # ID: 12
+        self.hydrology.addNode((-3779.8747892700185, -5455.249222671507), 173.81, 1, parent=self.hydrology.node(2)) # ID: 13
+        self.hydrology.addNode((1735.4047436340666, -5811.313690817918), 173.81, 1, parent=self.hydrology.node(3)) # ID: 14
+        self.hydrology.addNode((3913.3561082532797, -5762.491568073916), 173.81, 1, parent=self.hydrology.node(4)) # ID: 15
+        self.hydrology.addNode((4575.801759157646, -3697.733455274554), 173.81, 1, parent=self.hydrology.node(5)) # ID: 16
+        self.hydrology.addNode((6588.2148673450665, -117.71872224815615), 173.81, 1, parent=self.hydrology.node(6)) # ID: 17
+        self.hydrology.addNode((4551.139609616782, 2946.8162338070397), 173.81, 1, parent=self.hydrology.node(7)) # ID: 18
+        self.hydrology.addNode((1686.515368282502, 4331.337680237612), 173.81, 1, parent=self.hydrology.node(8)) # ID: 19
+        self.hydrology.addNode((-267.90201010200553, 3922.9057071722514), 173.81, 1, parent=self.hydrology.node(8)) # ID: 20
+        self.hydrology.addNode((-3628.3824225111284, 4028.245250826377), 173.81, 1, parent=self.hydrology.node(9)) # ID: 21
+        self.hydrology.addNode((-3981.7104458665694, 811.7400528187368), 347.62, 1, parent=self.hydrology.node(10)) # ID: 22
+        self.hydrology.addNode((-4397.990228017062, -1094.8102298855324), 347.62, 1, parent=self.hydrology.node(10)) # ID: 23
+        self.hydrology.addNode((-3139.1312650010427, 2351.151965827316), 347.62, 1, parent=self.hydrology.node(11)) # ID: 24
+        self.hydrology.addNode((-3652.2156918437145, -3468.52530321843), 347.62, 1, parent=self.hydrology.node(12)) # ID: 25
+        self.hydrology.addNode((-1636.5946626095852, -4565.8277541525395), 347.62, 1, parent=self.hydrology.node(13)) # ID: 26
+        self.hydrology.addNode((1544.4836554558808, -3498.6811242200897), 347.62, 1, parent=self.hydrology.node(14)) # ID: 27
+        self.hydrology.addNode((4066.8172916595668, -1433.742496404423), 347.62, 1, parent=self.hydrology.node(16)) # ID: 28
+        self.hydrology.addNode((4397.765121188957, 648.2121881900088), 347.62, 1, parent=self.hydrology.node(17)) # ID: 29
+        self.hydrology.addNode((2306.434717613504, 2358.5814186043426), 347.62, 1, parent=self.hydrology.node(18)) # ID: 30
+        self.hydrology.addNode((-1017.1741446275356, 1726.701818999854), 347.62, 1, parent=self.hydrology.node(20)) # ID: 31
+        self.hydrology.addNode((-2307.913817105099, -795.4702929502098), 521.4300000000001, 1, parent=self.hydrology.node(22)) # ID: 32
+        self.hydrology.addNode((-1496.566016258495, -2609.517313645959), 521.4300000000001, 1, parent=self.hydrology.node(25)) # ID: 33
+        self.hydrology.addNode((1363.0351974719795, -1185.2860634716526), 521.4300000000001, 1, parent=self.hydrology.node(27)) # ID: 34
+        self.hydrology.addNode((2670.0365109674985, 419.2884533342087), 521.4300000000001, 1, parent=self.hydrology.node(28)) # ID: 35
+        self.hydrology.addNode((707.4833463640621, 676.8933493181478), 521.4300000000001, 1, parent=self.hydrology.node(30)) # ID: 36
+
+        cells = TerrainHoneycombFunctions.initializeTerrainHoneycomb(self.shore, self.hydrology)
+
+        self.db = SaveFile.createDB(':memory:', 2000, 2320.5, 0, 0)
+        cells.saveToDB(self.db)
+
+
+    def test_save0(self) -> None:
+        cells = TerrainHoneycomb()
+        cells.loadFromDB(2000, 2320.5, self.shore, self.hydrology, self.db)
+
+        self.assertEqual(len(cells.qs), 78)
+
     def tearDown(self) -> None:
         self.db.close()
 

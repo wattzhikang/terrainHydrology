@@ -256,13 +256,15 @@ class ShoreModelImage(ShoreModel):
         return fromImageCoordinates((self.contour[index][1],self.contour[index][0]), self.imgray.shape, self.resolution)
 
 class ShoreModelShapefile(ShoreModel):
-    def __init__(self, inputFileName: str=None, shpFile=None, dbfFile=None) -> None:
+    def __init__(self, inputFileName: str=None, shpFile=None, shxFile=None, dbfFile=None) -> None:
         reader = None
 
         if inputFileName is not None:
             reader = shapefile.Reader(inputFileName, shapeType=5)
         elif shpFile is not None and dbfFile is not None:
             reader = shapefile.Reader(shp=shpFile, dbf=dbfFile, shapeType=5)
+        elif shpFile is not None and shxFile is not None and dbfFile is not None:
+            reader = shapefile.Reader(shp=shpFile, shx=shxFile, dbf=dbfFile, shapeType=5)
         else:
             return
 
@@ -765,13 +767,25 @@ class TerrainHoneycomb:
 
         self.cellsEdges: Dict[int, List[Edge]] = { } # cellID -> list of edges
         # get all the edges that border each cell
-        for row in db.execute('SELECT DISTINCT Cells.rivernode, Edges.id FROM Cells JOIN Edges ON Edges.Q0 = Cells.q OR Edges.Q1 = Cells.q'):
-            cellID = row['rivernode']
-            edgeID = row['id']
+        for row in db.execute('SELECT edge, node0, node1 FROM EdgeCells'):
+            node0 = row['node0']
+            node1 = row['node1']
+            edgeID = row['edge']
 
-            if cellID not in self.cellsEdges:
-                self.cellsEdges[cellID] = [ ]
-            self.cellsEdges[cellID].append(edges[edgeID])
+            if node0 not in self.cellsEdges:
+                self.cellsEdges[node0] = [ ]
+            self.cellsEdges[node0].append(edges[edgeID])
+            if node1 not in self.cellsEdges:
+                self.cellsEdges[node1] = [ ]
+            self.cellsEdges[node1].append(edges[edgeID])
+        # since EdgeCells excludes shore segments, we need to add them in
+        for row in db.execute('SELECT Edges.id, q1s.rivernode FROM Edges JOIN Cells AS q0s ON q0s.q = Edges.q0 JOIN Cells AS q1s ON q1s.q = Edges.q1 AND q1s.rivernode = q0s.rivernode WHERE isShore = 1'):
+            edgeID = row['id']
+            nodeID = row['rivernode']
+
+            if nodeID not in self.cellsEdges:
+                self.cellsEdges[nodeID] = [ ]
+            self.cellsEdges[nodeID].append(edges[edgeID])
 
         self.cellsDownstreamRidges: Dict[int, Edge] = { }
         # get all the pairs of children and their parents, and get the edges between them
@@ -794,7 +808,7 @@ class TerrainHoneycomb:
             db.execute("DELETE FROM Edges")
 
             # write Qs
-            db.executemany("INSERT INTO Qs (id, elevation, loc) VALUES (?, ?, MakePoint(?, ?, 347895))", [(id(q), q.elevation, q.position[0], q.position[1]) for q in self.qs])
+            db.executemany("INSERT INTO Qs (id, elevation, loc) VALUES (?, ?, MakePoint(?, ?, 347895))", [(id(q), q.elevation, float(q.position[0]), float(q.position[1])) for q in self.qs])
 
             # write cells using the edges, that way we can save the order of the Qs for a good polygon
             for cellID, edges in self.cellsEdges.items():
@@ -818,13 +832,15 @@ class TerrainHoneycomb:
     def cellVertices(self, nodeID: int) -> typing.List[Point]:
         """Gets the coordinates of the Qs that define the shape of the node's cell
 
+        Note: This method does not return vertices in order.
+
         :param nodeID: The ID of the node whose shape you wish to query
         :type nodeID: int
         :return: The coordinates of the cell's shape
         :rtype: Math.Point
         """
         ridges = self.cellsEdges[nodeID] # the indices of the vertex boundaries
-        return [ridge.Q0.position for ridge in ridges] # positions of all the vertices
+        return list(set([ridge.Q0.position for ridge in ridges] + [ridge.Q1.position for ridge in ridges])) # positions of all the vertices
     def cellArea(self, node: HydroPrimitive) -> float:
         """Calculates the area of a cell
 
