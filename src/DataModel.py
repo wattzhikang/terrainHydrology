@@ -367,6 +367,11 @@ class HydrologyNetwork:
         if db is not None:
             self._loadFromDB(db)
     def _loadFromDB(self, db: sqlite3.Connection) -> None:
+        """Loads the hydrology network from a database
+
+        :param db: The database to load from
+        :type db: sqlite3.Connection
+        """
         db.row_factory = sqlite3.Row
 
         allpoints_list = [ ]
@@ -409,6 +414,11 @@ class HydrologyNetwork:
 
         self.graphkd = cKDTree(allpoints_list)
     def saveToDB(self, db: sqlite3.Connection) -> None:
+        """Writes the hydrology network to a database
+
+        :param db: The database to write to
+        :type db: sqlite3.Connection
+        """
         with db:
             db.execute('DELETE FROM RiverNodes')
             # write river nodes
@@ -728,6 +738,19 @@ class TerrainHoneycomb:
 
     """
     def loadFromDB(self, resolution, edgeLength, shore, hydrology, db: sqlite3.Connection):
+        """Loads the terrain honeycomb from a database
+
+        :param resolution: The resolution of the underlying rasters in meters per pixel
+        :type resolution: float
+        :param edgeLength: The edge length in the simulation
+        :type edgeLength: float
+        :param shore: The ShoreModel for the land area
+        :type shore: ShoreModel
+        :param hydrology: The filled-out HydrologyNetwork for the land area
+        :type hydrology: HydrologyNetwork
+        :param db: The database connection
+        :type db: sqlite3.Connection
+        """
         db.row_factory = sqlite3.Row
 
         self.edgeLength = edgeLength
@@ -795,6 +818,11 @@ class TerrainHoneycomb:
 
             self.cellsDownstreamRidges[nodeID] = edges[downstreamEdgeID]
     def saveToDB(self, db: sqlite3.Connection):
+        """Saves the terrain honeycomb to a database
+
+        :param db: The database connection
+        :type db: sqlite3.Connection
+        """
         #compile list of all primitives
         createdEdges: typing.Dict[int, Edge] = { }
         for cellID in range(len(self.hydrology)):
@@ -982,6 +1010,11 @@ class Terrain:
     :type num_points: int
     """
     def loadFromDB(self, db: sqlite3.Connection):
+        """Loads the terrain primitives from a database
+
+        :param db: The database connection
+        :type db: sqlite3.Connection
+        """
         db.row_factory = sqlite3.Row
 
         self.cellTsDict = { }
@@ -1000,6 +1033,11 @@ class Terrain:
         allpoints_nd = np.array(allpoints_list)
         self.apkd = cKDTree(allpoints_nd)
     def saveToDB(self, db: sqlite3.Connection):
+        """Saves the terrain primitives to a database
+
+        :param db: The database connection
+        :type db: sqlite3.Connection
+        """
         with db:
             db.execute("DELETE FROM Ts")
             db.executemany("INSERT INTO Ts (id, rivercell, elevation, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(idx, t.cell, t.elevation, t.position[0], t.position[1]) for idx, t in enumerate(self.tList)])

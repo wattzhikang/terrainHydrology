@@ -44,14 +44,14 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     '--lat',
-    help='Center latitude for the output GeoTIFF',
+    help='Center latitude for the project'' projection',
     dest='latitude',
     metavar='-43.2',
     required=True
 )
 parser.add_argument(
     '--lon',
-    help='Center longitude for the output GeoTIFF',
+    help='Center longitude for the project'' projection',
     dest='longitude',
     metavar='-103.8',
     required=True
