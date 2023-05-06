@@ -1210,22 +1210,21 @@ class SaveFileHoneycombSaveTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.db.close()
 
-# class SaveFileTests(unittest.TestCase):
-#     def shore_save_0_test(self) -> None:
-#         pass
-#     def shore_load_0_test(self) -> None:
+class SaveFileTerrainLoadTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.db = SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        with self.db:
+            self.db.execute('INSERT INTO Ts VALUES (0, 0, 12.3, MakePoint(10.5, 5.10, 347895))')
+            self.db.execute('INSERT INTO Ts VALUES (5, 0, 13.2, MakePoint(20.1, 12.6, 347895))')
+            self.db.execute('INSERT INTO Ts VALUES (7, 0, 15.5, MakePoint(17.5, 15.10, 347895))')
+            self.db.execute('INSERT INTO Ts VALUES (2, 0, 15.5, MakePoint(18.6, 0.3, 347895))')
+            self.db.execute('INSERT INTO Ts VALUES (6, 0, 10.7, MakePoint(0.8, 0.7, 347895))')
+    
+    def test_load0(self) -> None:
+        Ts = Terrain()
+        Ts.loadFromDB(self.db)
 
-
-#         self.assertEqual(len(shape), len(shore))
-#     def hydrology_save_0_test(self) -> None:
-#         pass
-#     def hydrology_load_0_test(self) -> None:
-#         pass
-#     def honeycomb_save_0_test(self) -> None:
-#         pass
-#     def honeycomb_load_0_test(self) -> None:
-#         pass
-#     def terrain_save_0_test(self) -> None:
-#         pass
-#     def terrain_load_0_test(self) -> None:
-#         pass
+        self.assertEqual(len(Ts.tList), 5)
+    
+    def tearDown(self) -> None:
+        self.db.close()
