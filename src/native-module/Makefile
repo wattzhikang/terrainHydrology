@@ -29,11 +29,23 @@ $(GEN)/testsuite.o : tst/testsuite.cpp kdtree.hpp raster.hpp forest.hpp $(GTEST_
 	@ g++ $(CPPFLAGS) -isystem $(GTEST_DIR)/include $^ -c
 	@ mv testsuite.o $(GEN)/
 
+$(GEN)/saveTests.o : tst/saveTests.cpp kdtree.hpp raster.hpp forest.hpp $(GTEST_HEADERS)
+	@ echo "Compiling Tests..."
+	@ g++ $(CPPFLAGS) -isystem $(GTEST_DIR)/include $^ -c
+	@ mv saveTests.o $(GEN)/
+
 $(BIN)/testsuite : $(GEN)/testsuite.o $(GEN)/gtest-all.o $(GEN)/gtest_main.o $(GEN)/terrainHoneycomb.o $(GEN)/terrainElevation.o $(GEN)/hydrologyFunctions.o $(GEN)/hydrologyParameters.o $(GEN)/hydrology.o $(GEN)/floatEndian.o $(GEN)/shore.o
 	g++ $(CPPFLAGS) $^ -lsqlite3 -lpthread -lopencv_core -lopencv_imgproc -lgeos_c -o $@
 
-test : $(BIN)/testsuite
-	@ $(BIN)/testsuite
+$(BIN)/saveTests : $(GEN)/saveTests.o $(GEN)/gtest-all.o $(GEN)/gtest_main.o $(GEN)/terrainHoneycomb.o $(GEN)/terrainElevation.o $(GEN)/hydrologyFunctions.o $(GEN)/hydrologyParameters.o $(GEN)/hydrology.o $(GEN)/floatEndian.o $(GEN)/shore.o
+	g++ $(CPPFLAGS) $^ -lsqlite3 -lpthread -lopencv_core -lopencv_imgproc -lgeos_c -o $@
+
+# test : $(BIN)/testsuite $(BIN)/saveTests
+# 	@ $(BIN)/testsuite
+# 	@ $(BIN)/saveTests
+
+test : $(BIN)/saveTests
+	@ $(BIN)/saveTests
 
 $(GEN)/%.o : %.cpp
 	g++ $(CPPFLAGS) -c -o $@ $^
