@@ -256,6 +256,25 @@ class ShoreModelImage(ShoreModel):
         return fromImageCoordinates((self.contour[index][1],self.contour[index][0]), self.imgray.shape, self.resolution)
 
 class ShoreModelShapefile(ShoreModel):
+    """This class creates a shoreline based on an ESRI shapefile.
+
+    This class inherits form ShoreModel, so it has all the same methods.
+
+    There are 2 ways to initialize this class. If all of your shapefile files have the same
+    name (eg myshore.shp, myshore.shx, myshore.dbf), you can pass in the path to the shapefile,
+    minus the extension (eg mydirectory/myshore). If your files have different names, or you
+    want to pass in file-like objects, you can pass in the individual files.
+    
+    :param inputFileName: The path to the shapefile files. Note that this is not a path to a file, but a path to the file minus the extension. Thus, you can only use this parameter if all of your shapefile files have the same name.
+    :type inputFileName: str
+    :param shpFile: A file-like object containing the .shp file
+    :type shpFile: typing.IO
+    :param shxFile: A file-like object containing the .shx file
+    :type shxFile: typing.IO
+    :param dbfFile: A file-like object containing the .dbf file
+    :type dbfFile: typing.IO
+
+    """
     def __init__(self, inputFileName: str=None, shpFile=None, shxFile=None, dbfFile=None) -> None:
         reader = None
 
