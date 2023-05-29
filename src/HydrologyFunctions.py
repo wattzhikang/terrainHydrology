@@ -267,8 +267,8 @@ def coastNormal(node: HydroPrimitive, params: HydrologyParameters) -> float: # G
     :rtype: float
     """
     assert node.contourIndex is not None # assert that this is a mouth node
-    p1 = params.shore[node.contourIndex+3]
-    p2 = params.shore[node.contourIndex-3]
+    p1 = params.shore[node.contourIndex+1]
+    p2 = params.shore[node.contourIndex-1]
     theta = math.atan2(p2[1]-p1[1],p2[0]-p1[0])
     return theta - 0.5*math.pi
 

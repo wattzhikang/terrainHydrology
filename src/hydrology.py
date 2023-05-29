@@ -43,6 +43,20 @@ parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
 )
 parser.add_argument(
+    '--lat',
+    help='Center latitude for the project'' projection',
+    dest='latitude',
+    metavar='-43.2',
+    required=True
+)
+parser.add_argument(
+    '--lon',
+    help='Center longitude for the project'' projection',
+    dest='longitude',
+    metavar='-103.8',
+    required=True
+)
+parser.add_argument(
     '-g',
     '--gamma',
     help='An outline of the shore. Should be a grayscale image (but that doesn\'t have to be the actual color model) or an ESRI shapefile',
@@ -164,6 +178,8 @@ if args.accelerate:
         print('One or both of the executables does not exist. Run "make" in the src/ directory to build them.')
         exit()
 
+# Initialize the save file
+db = SaveFile.createDB(outputFile, resolution, edgeLength, args.longitude, args.latitude)
 
 # Load input images
 
@@ -175,6 +191,8 @@ else:
 terrainSlope = DataModel.RasterData(inputTerrain, resolution)
 riverSlope = DataModel.RasterData(inputRiverSlope, resolution)
 
+# Save the shore dimensions
+SaveFile.setShoreBoundaries(db, shore)
 
 ## Generate river mouths
 
@@ -218,11 +236,11 @@ try:
         end = datetime.datetime.now()
         print()
     else: # Generate the hydrology using the native module
-        file = open('src/native-module/bin/binaryFile', 'w+b')
-        file.write(params.toBinary())
-        file.close()
+        SaveFile.dumpMouthNodes(db, hydrology)
+        SaveFile.createRiverSlopeRaster(db, riverSlope)
+        shore.saveToDB(db)
         proc = subprocess.Popen( # start the native module
-            [buildRiversExe],
+            [buildRiversExe, outputFile, str(Pa), str(Pc), str(sigma), str(eta), str(zeta), str(slopeRate), str(maxTries), str(riverAngleDev)],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE
         )
@@ -243,7 +261,7 @@ try:
 
         # Recreate hydrology with data from the native module
         print('\tReading data...')
-        hydrology = DataModel.HydrologyNetwork(stream=proc.stdout)
+        hydrology = DataModel.HydrologyNetwork(db)
 
     print(f'\tGenerated {len(hydrology)} nodes in {(end-start).total_seconds()} seconds')
     print(f'\tRate: {len(hydrology)/(end-start).total_seconds()} node/sec')
@@ -253,7 +271,12 @@ except Exception as e:
     print(e)
 
     print('Saving...')
-    SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology=None, cells=None, Ts=None)
+    shore.saveToDB(db)
+    hydrology.saveToDB(db)
+
+    SaveFile.dropRiverSlopeRaster(db)
+
+    db.close()
 
     exit()
 
@@ -292,7 +315,13 @@ except Exception as e:
     print(e)
 
     print('Saving...')
-    SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology, cells, Ts=None)
+    shore.saveToDB(db)
+    hydrology.saveToDB(db)
+    cells.saveToDB(db)
+
+    SaveFile.dropRiverSlopeRaster(db)
+
+    db.close()
 
     exit()
 
@@ -313,7 +342,13 @@ except Exception as ex:
     print(ex.with_traceback())
 
     print('Saving...')
-    SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology, cells, Ts=None)
+    shore.saveToDB(db)
+    hydrology.saveToDB(db)
+    cells.saveToDB(db)
+
+    SaveFile.dropRiverSlopeRaster(db)
+
+    db.close()
 
     exit()
 
@@ -358,14 +393,14 @@ try:
             processes[p].join()
             pipes[p][0].close()
     else:
-        # Write the binary data to a file
-        with open('src/native-module/bin/binaryFile', 'w+b') as file:
-            SaveFile.writeToTerrainModule(file, shore, edgeLength, hydrology, cells, Ts)
-            file.close()
+        # Save necessary information to the database
+        hydrology.saveToDB(db)
+        cells.saveToDB(db)
+        Ts.saveToDB(db)
 
         # Run the native module
         primitivesProc = subprocess.Popen( # start the native module
-            ['./' + computePrimitivesExe],
+            [computePrimitivesExe, outputFile],
             stdout=subprocess.PIPE
         )
 
@@ -375,25 +410,33 @@ try:
         readByte = primitivesProc.stdout.read(1)
         assert struct.unpack('B',readByte)[0] == 0x21
 
-        for t in Ts.allTs():
-            readByte = primitivesProc.stdout.read(struct.calcsize('!f'))
-            t.elevation = struct.unpack('!f', readByte)[0]
-
-        # clean up
-        # os.remove('src/binaryFile')
+        # Recreate the terrain primitives with data from the native module
+        Ts = DataModel.Terrain()
+        Ts.loadFromDB(db)
 
 except Exception as e:
     print('Problem encountered in generating the terrain primitives. Saving shore model, hydrology network, and terrain cells to export file.')
     print(e)
 
     print('Saving...')
-    SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology, cells, Ts=None)
+    shore.saveToDB(db)
+    hydrology.saveToDB(db)
+    cells.saveToDB(db)
+
+    SaveFile.dropRiverSlopeRaster(db)
+
+    db.close()
 
     exit()
 
 ## Save the data
 print('Writing data model...')
-SaveFile.writeDataModel(outputFile, edgeLength, shore, hydrology, cells, Ts)
+shore.saveToDB(db)
+hydrology.saveToDB(db)
+cells.saveToDB(db)
+Ts.saveToDB(db)
+SaveFile.dropRiverSlopeRaster(db)
+db.close() # TODO This should be implemented as a context manager
 print('Complete')
 
 # DEBUG

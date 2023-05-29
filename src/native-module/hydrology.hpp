@@ -338,6 +338,13 @@ class Hydrology
   size_t numNodes();
 
   /**
+   * @brief Returns a full list of all the nodes in the network
+   * 
+   * @return std::vector<Primitive*> 
+   */
+  std::vector<Primitive*> allNodes();
+
+  /**
    * @brief Writes a binary representation of this network to the specified stream
    * 
    * @param stream 

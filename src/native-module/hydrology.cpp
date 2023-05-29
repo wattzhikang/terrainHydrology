@@ -370,6 +370,10 @@ size_t Hydrology::numNodes()
   return indexedNodes.size();
 }
 
+std::vector<Primitive*> Hydrology::allNodes() {
+  return indexedNodes;
+}
+
 void Hydrology::writeBinary(FILE *stream)
 {
   //send the number of nodes, so the calling program knows how

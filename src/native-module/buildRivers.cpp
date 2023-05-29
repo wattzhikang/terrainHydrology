@@ -16,21 +16,27 @@ A list of data structures that will be used:
 * A list of candidate nodes (this must be parallel)
 */
 
-int main() {
-  //gather inputs
-  #define INPUT input
-  #define FILEINPUT
-  #ifdef FILEINPUT
-  FILE *input = fopen("./src/native-module/bin/binaryFile", "rb");
-
-  if (input == NULL)
+int main(int argc, char* argv[])
+{
+  if (argc < 2)
   {
-    printf("Unable to open file\n");
+    fprintf(stderr, "No input provided to buildRivers\n");
     exit(1);
   }
-  #endif
 
-  HydrologyParameters params(INPUT);
+  // open the sqlite3 database
+  // the path to the database is the first argument
+  sqlite3 *db;
+  if (sqlite3_open_v2(argv[1], &db, SQLITE_OPEN_READWRITE, NULL) != SQLITE_OK)
+  {
+    fprintf(stderr, "Unable to open the file");
+    exit(1);
+  }
+  // load SpatiaLite as an extension
+  sqlite3_enable_load_extension(db, 1);
+  sqlite3_load_extension(db, "mod_spatialite", NULL, NULL);
+
+  HydrologyParameters params(db, argv[2], argv[3], argv[4], argv[5], argv[6], argv[7], argv[8], argv[9]);
 
 
   // perform computatons
@@ -55,21 +61,17 @@ int main() {
     }
   }
   }
-  // signall to the calling program that processing
+
+  //export outputs
+  params.writeToDatabase(db);
+
+  //free resources
+  sqlite3_close(db);
+
+  // signal to the calling program that processing
   // is complete
   fwrite(&allDone, sizeof(uint8_t), 1, stdout);
   fflush(stdout);
-
-
-  //export outputs
-  params.hydrology.writeBinary(stdout);
-  fflush(stdout);
-
-
-  //free resources
-  #ifdef FILEINPUT
-  fclose(INPUT);
-  #endif
 
   return 0;
 }

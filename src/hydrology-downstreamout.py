@@ -52,17 +52,24 @@ with open(f'{outputFile}.prj', 'w') as prj:
     prj.write(prjstr)
     prj.close()
 
-## Read the data
-resolution, edgeLength, shore, hydrology, cells, Ts = SaveFile.readDataModel(
-    inputFile
-)
+# Read the data model
+db = SaveFile.openDB(inputFile)
+resolution = SaveFile.getResolution(db)
+edgeLength = SaveFile.getEdgeLength(db)
+shore: DataModel.ShoreModelShapefile = DataModel.ShoreModelShapefile()
+shore.loadFromDB(db)
+hydrology: DataModel.HydrologyNetwork = DataModel.HydrologyNetwork(db)
+cells: DataModel.TerrainHoneycomb = DataModel.TerrainHoneycomb()
+cells.loadFromDB(resolution, edgeLength, shore, hydrology, db)
+Ts: DataModel.Terrain = DataModel.Terrain()
+Ts.loadFromDB(db)
 
 realShape = shore.realShape
 
 with shapefile.Writer(outputFile, shapeType=3) as w:
     w.field('id', 'L')
 
-    for edge in cells.cellsDownstreamEdges.values():
+    for edge in cells.cellsDownstreamRidges.values():
         coords = [ ]
 
         coords.append(edge.Q0.position)

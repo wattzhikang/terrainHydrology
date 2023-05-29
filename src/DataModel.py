@@ -14,9 +14,11 @@ from tqdm import trange
 import datetime
 import shapefile
 import abc
+import sqlite3
 
 import typing
 from typing import List
+from typing import Dict
 
 import Math
 from Math import Point
@@ -163,6 +165,36 @@ class ShoreModel(metaclass=abc.ABCMeta):
         :rtype: int
         """
         return len(self.contour)
+    def saveToDB(self, db: sqlite3.Connection) -> None:
+        """Writes the shoreline to a database
+
+        NOTE: No matter the provenance of a shoreline, whether from an image
+        or shapefile, it will be written to the database as a list of points
+        in the project coordinate system. So regardless of the source, a
+        shoreline should be loaded from the database as a Shapefile shoreline.
+
+        :param db: The database to write to
+        :type db: sqlite3.Connection
+        """
+        with db:
+            db.execute('DELETE FROM Shoreline')
+            # executemany() opens and closes transactions itself, so we don't need to
+            db.executemany("INSERT INTO Shoreline (id, loc) VALUES (?, MakePoint(?, ?, 347895))", [(idx, float(point[0]), float(point[1])) for idx, point in enumerate(self)])
+    def loadFromDB(self, db: sqlite3.Connection) -> None:
+        """Loads the shoreline from a database
+
+        :param db: The database to load from
+        :type db: sqlite3.Connection
+        """
+        db.row_factory = sqlite3.Row
+        cursor = db.execute('SELECT X(loc) AS locX, Y(loc) AS locY FROM Shoreline ORDER BY id')
+        self.contour = [(row['locX'], row['locY']) for row in cursor]
+        self.contour = np.array(self.contour, dtype=np.float32)
+
+        self.pointTree = cKDTree(self.contour)
+
+        # This will be a problem if the original object was a ShoreModelImage, but we're going to axe that class anyway
+        self.realShape = (max([p[0] for p in self.contour])-min([p[0] for p in self.contour]),max([p[1] for p in self.contour])-min([p[1] for p in self.contour]))
 
 class ShoreModelImage(ShoreModel):
     """This class creates a shoreline based on a black-and-white image
@@ -181,17 +213,14 @@ class ShoreModelImage(ShoreModel):
     .. note::
         If passing in a binary file, you must seek to the appropriate location.
     """
-    def __init__(self, resolution: float, gammaFileName: str=None, binaryFile: typing.IO=None) -> None:
+    def __init__(self, resolution: float, gammaFileName: str=None) -> None:
         """Constructor
         """
-        if gammaFileName is not None and binaryFile is None:
-            self._initFromGamma(resolution, gammaFileName)
-        elif binaryFile is not None and gammaFileName is None:
-            self._initFromBinary(resolution, binaryFile)
-        else:
-            raise ValueError('You must provide appropriate arguments')
-    def _initFromGamma(self, resolution: float, gammaFileName: str) -> None:
+
         self.resolution = resolution
+
+        if gammaFileName is None:
+            return
 
         self.img = cv.imread(gammaFileName)
         
@@ -216,59 +245,42 @@ class ShoreModelImage(ShoreModel):
         
         # TODO raise exception if dimensions not square
         # TODO raise exception if multiple contours
-    def _initFromBinary(self, resolution: float, binaryFile: typing.IO):
-        self.resolution = resolution
-        self.rasterShape = (
-            struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0],
-            struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0]
-        )
-        self.imgray = np.zeros(self.rasterShape)
-        for d0 in range(self.rasterShape[0]):
-            for d1 in range(self.rasterShape[1]):
-                self.imgray[d0][d1] = struct.unpack('!B', binaryFile.read(struct.calcsize('!B')))[0]
-        self.realShape = (self.imgray.shape[0] * self.resolution, self.imgray.shape[1] * self.resolution)
-        contourLength = struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0]
-        self.contour = [ ]
-        for i in range(contourLength):
-            self.contour.append((
-                struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0],
-                struct.unpack('!Q', binaryFile.read(struct.calcsize('!Q')))[0]
-            ))
-        self.contour = np.array(self.contour, dtype=np.dtype(np.float32))
-        self.pointTree = cKDTree(self.contour)
     def distanceToShore(self, loc: Point) -> float:
         loc = toImageCoordinates(loc, self.imgray.shape, self.resolution)
 
         #    for some reason this method is      y, x
         return cv.pointPolygonTest(self.contour,(loc[1],loc[0]),True) * self.resolution
     def __getitem__(self, index: int):
+        # openCV stores contour points as (y,x), so we need to flip them
+        # we also need to convert from image coordinates to project coordinates
         return fromImageCoordinates((self.contour[index][1],self.contour[index][0]), self.imgray.shape, self.resolution)
 
 class ShoreModelShapefile(ShoreModel):
-    def __init__(self, inputFileName: str=None, binaryFile: typing.IO=None) -> None:
-        if inputFileName is not None and binaryFile is None:
-            self._initFromFile(inputFileName)
-        elif binaryFile is not None and inputFileName is None:
-            self._initFromBinary(binaryFile)
-        self.realShape = (max([p[0] for p in self.contour])-min([p[0] for p in self.contour]),max([p[1] for p in self.contour])-min([p[1] for p in self.contour]))
-        self.pointTree = cKDTree(self.contour)
-    def _initFromFile(self, inputFileName: str) -> None:
-        with shapefile.Reader(inputFileName, shapeType=5) as shp:
-            self.contour = shp.shape(0).points[1:] # the first and last points are identical, so remove them
+    def __init__(self, inputFileName: str=None, shpFile=None, shxFile=None, dbfFile=None) -> None:
+        reader = None
+
+        if inputFileName is not None:
+            reader = shapefile.Reader(inputFileName, shapeType=5)
+        elif shpFile is not None and dbfFile is not None:
+            reader = shapefile.Reader(shp=shpFile, dbf=dbfFile, shapeType=5)
+        elif shpFile is not None and shxFile is not None and dbfFile is not None:
+            reader = shapefile.Reader(shp=shpFile, shx=shxFile, dbf=dbfFile, shapeType=5)
+        else:
+            return
+
+        with reader:
+            self.contour = reader.shape(0).points[1:] # the first and last points are identical, so remove them
             self.contour.reverse() # pyshp stores shapes in clockwise order, but we want counterclockwise
             self.contour = np.array(self.contour, dtype=np.dtype(np.float32))
-    def _initFromBinary(self, binary: typing.IO) -> None:
-        contourLength = struct.unpack('!Q', binary.read(struct.calcsize('!Q')))[0]
-        self.contour = [ ]
-        for i in range(contourLength):
-            self.contour.append((
-                struct.unpack('!f', binary.read(struct.calcsize('!f')))[0],
-                struct.unpack('!f', binary.read(struct.calcsize('!f')))[0]
-            ))
+
+        self.realShape = (max([p[0] for p in self.contour])-min([p[0] for p in self.contour]),max([p[1] for p in self.contour])-min([p[1] for p in self.contour]))
+        self.pointTree = cKDTree(self.contour)
     def distanceToShore(self, loc: Point) -> bool:
         # in this class, the contour is stored as x,y, so we put the test points in as x,y
         return cv.pointPolygonTest(self.contour, (loc[0],loc[1]), True)
     def __getitem__(self, index: int):
+        # no need to flip the points, since they're stored as x,y
+        # no need to convert from a coordinate system, since shapefiles are expected to be in the same coordinate system as the project
         return self.contour[index]
 
 class HydroPrimitive:
@@ -286,8 +298,8 @@ class HydroPrimitive:
     :vartype elevation: float
     :cvar priority: The priority of the node. See :class:`HydrologyNetwork` for this value's significance
     :vartype priority: int
-    :cvar parent: The **ID** of the parent node, or None if this node is a river mouth
-    :vartype parent: int | None
+    :cvar parent: The parent node, or None if this node is a river mouth
+    :vartype parent: HydroPrimitive | None
     :cvar contourIndex: If this node is on the coast, this is the index in :class:`Shore` that is closest to this node
     :vartype contourIndex: int
     :cvar rivers: A :class:`LineString` representing the river's actual path. It only flows to a node where it joins with a larger river. This is set in :func:`RiverInterpolationFunctions.computeRivers`
@@ -299,7 +311,7 @@ class HydroPrimitive:
     :cvar flow: The flow rate of water draining out of this cell (including flow from ancestor cells) in cubic meters per second
     :vartype flow: float
     """
-    def __init__(self, id: int, loc: typing.Tuple[float,float], elevation: float, priority: int, parent: int):
+    def __init__(self, id: int, loc: typing.Tuple[float,float], elevation: float, priority: int, parent: 'HydroPrimitive'):
         self.id = id
         self.position = loc
         self.elevation = elevation
@@ -347,148 +359,84 @@ class HydrologyNetwork:
     Internally, the data is held in a :class:`networkx DiGraph<networkx.DiGraph>`. A
     :class:`cKDTree<scipy.spatial.cKDTree>` is used for lookup by area.
     """
-    def __init__(self, stream=None, binaryFile: typing.IO=None):
+    def __init__(self, db: sqlite3.Connection = None):
         self.nodeCounter = 0
         self.graph = nx.DiGraph()
         self.mouthNodes = []
 
-        if stream is not None:
-            self._initFromStream(stream)
-        elif binaryFile is not None:
-            self._initFromBinary(binaryFile)
-    def _initFromStream(self, pipe):
-        buffer = pipe.read(8)
-        numberNodes = struct.unpack('!Q', buffer)[0]
+        if db is not None:
+            self._loadFromDB(db)
+    def _loadFromDB(self, db: sqlite3.Connection) -> None:
+        """Loads the hydrology network from a database
 
-        allpoints_list = []
+        :param db: The database to load from
+        :type db: sqlite3.Connection
+        """
+        db.row_factory = sqlite3.Row
 
-        for i in range(numberNodes):
-            buffer = pipe.read(8)
-            nodeID = struct.unpack('!Q', buffer)[0]
+        allpoints_list = [ ]
 
-            buffer = pipe.read(8)
-            parent = struct.unpack('!Q', buffer)[0]
-            buffer = pipe.read(8)
-            contourIndex = struct.unpack('!Q', buffer)[0]
-            if parent == nodeID:
-                parent = None
-            else:
-                parent = self.node(parent)
-                contourIndex = None
+        for row in db.execute('SELECT id, parent, elevation, localwatershed, inheritedwatershed, flow, X(loc) AS xLoc, Y(loc) AS yLoc FROM RiverNodes ORDER BY id'):
+            id = row['id']
+            parentID = row['parent']
+            elevation = row['elevation']
+            localWatershed = row['localWatershed']
+            inheritedWatershed = row['inheritedWatershed']
+            flow = row['flow']
+            x, y = row['xLoc'], row['yLoc']
 
-            buffer = pipe.read(1)
-            numChildren = struct.unpack('!B', buffer)[0]
+            # get the node's parent by ID
+            parent = None
+            if parentID is not None:
+                parent = self.graph.nodes[parentID]['primitive']
 
-            for chiild in range(numChildren):
-                buffer = pipe.read(8)
-                childID = struct.unpack('!Q', buffer)[0]
-
-            buffer = pipe.read(4)
-            locX = struct.unpack('!f', buffer)[0]
-
-            buffer = pipe.read(4)
-            locY = struct.unpack('!f', buffer)[0]
-
-            buffer = pipe.read(4)
-            elevation = struct.unpack('!f', buffer)[0]
-
-            allpoints_list.append( (locX, locY) )
-
-            node = HydroPrimitive(self.nodeCounter, (locX,locY), elevation, 0, parent)
-            if contourIndex is not None:
-                node.contourIndex = contourIndex
-
-            self.graph.add_node(
-                self.nodeCounter,
-                primitive=node
-            )
-            if parent is None:
-                self.mouthNodes.append(self.nodeCounter)
-            else:
-                self.graph.add_edge(parent.id, self.nodeCounter)
-
-            self.nodeCounter += 1
-
-        self.graphkd = cKDTree(allpoints_list)
-    def _initFromBinary(self, file):
-        buffer = file.read(8)
-        numberNodes = struct.unpack('!Q', buffer)[0]
-
-        allpoints_list = []
-
-        for i in range(numberNodes):
-            buffer = file.read(struct.calcsize('!I'))
-            nodeID = struct.unpack('!I', buffer)[0]
-
-            buffer = file.read(4)
-            locX = struct.unpack('!f', buffer)[0]
-
-            buffer = file.read(4)
-            locY = struct.unpack('!f', buffer)[0]
-
-            buffer = file.read(4)
-            elevation = struct.unpack('!f', buffer)[0]
-
-            buffer = file.read(struct.calcsize('!I'))
-            parent = struct.unpack('!I', buffer)[0]
-            if parent == nodeID:
-                parent = None
-            else:
-                parent = self.node(parent)
-
-            buffer = file.read(struct.calcsize('!I'))
-            contourIndex = struct.unpack('!I', buffer)[0]
-
+            # get the rivers of the node
             rivers = [ ]
-            buffer = file.read(struct.calcsize('!B'))
-            numRivers = struct.unpack('!B', buffer)[0]
-            for i in range(numRivers):
-                points = [ ]
-                buffer = file.read(struct.calcsize('!H'))
-                numPoints = struct.unpack('!H', buffer)[0]
-                for j in range(numPoints):
-                    buffer = file.read(struct.calcsize('!f'))
-                    riverX = struct.unpack('!f', buffer)[0]
-                    buffer = file.read(struct.calcsize('!f'))
-                    riverY = struct.unpack('!f', buffer)[0]
-                    buffer = file.read(struct.calcsize('!f'))
-                    riverZ = struct.unpack('!f', buffer)[0]
-                    points.append((riverX,riverY,riverZ))
-                rivers.append(geom.LineString(points))
-            
-            buffer = file.read(struct.calcsize('!f'))
-            localWatershed = struct.unpack('!f', buffer)[0]
+            for river in db.execute('SELECT AsText(path) FROM RiverPaths WHERE rivernode = ?', (id,)):
+                strPoints = river[0].replace('LINESTRING Z(', '').replace(')', '').split(', ')
+                riverGeom = [(float(x), float(y), float(z)) for x,y,z in [point.split(' ') for point in strPoints]]
+                rivers.append(geom.LineString(riverGeom))
 
-            buffer = file.read(struct.calcsize('!f'))
-            inheritedWatershed = struct.unpack('!f', buffer)[0]
+            allpoints_list.append((x,y))
 
-            buffer = file.read(struct.calcsize('!f'))
-            flow = struct.unpack('!f', buffer)[0]
-
-            allpoints_list.append( (locX, locY) )
-
-            node = HydroPrimitive(self.nodeCounter, (locX,locY), elevation, 0, parent)
-
-            if parent is not None:
-                node.contourIndex = contourIndex
-            node.rivers = rivers
+            node = HydroPrimitive(id, (x,y), elevation, 0, parent)
             node.localWatershed = localWatershed
             node.inheritedWatershed = inheritedWatershed
             node.flow = flow
+            node.rivers = rivers
 
-            self.graph.add_node(
-                self.nodeCounter,
-                primitive=node
-            )
-            if parent is None:
-                self.mouthNodes.append(self.nodeCounter)
+            self.graph.add_node(id, primitive=node)
+
+            if parentID is None:
+                self.mouthNodes.append(id)
             else:
-                self.graph.add_edge(parent.id, self.nodeCounter)
-
-            self.nodeCounter += 1
+                self.graph.add_edge(parentID, id)
 
         self.graphkd = cKDTree(allpoints_list)
-    def addNode(self, loc: typing.Tuple[float,float], elevation: float, priority: int, contourIndex: int=None, parent: int=None) -> HydroPrimitive:
+    def saveToDB(self, db: sqlite3.Connection) -> None:
+        """Writes the hydrology network to a database
+
+        :param db: The database to write to
+        :type db: sqlite3.Connection
+        """
+        with db:
+            db.execute('DELETE FROM RiverNodes')
+            # write river nodes
+            db.executemany("INSERT INTO RiverNodes (id, parent, elevation, localwatershed, inheritedwatershed, flow, loc) VALUES (?, ?, ?, ?, ?, ?, MakePoint(?, ?, 347895))", [(node.id, node.parent.id if node.parent is not None else None, node.elevation, node.localWatershed, node.inheritedWatershed, node.flow, node.x(), node.y()) for node in self.allNodes()])
+
+            # write river paths
+            for node in self.allNodes():
+                for river in node.rivers:
+                    geom = "LINESTRINGZ(" + ", ".join([f'{p[0]} {p[1]} {p[2]}' for p in river.coords]) + ")"
+                    try:
+                        db.execute("INSERT INTO RiverPaths (rivernode, path) VALUES (?, GeomFromText(?, 347895))", (node.id, geom))
+                    except:
+                        print('printing geom')
+                        print(geom)
+                        raise
+                    #TODO: refactor rivers
+                    #TODO: this can also be simplified by only storing rivers of leaf nodes
+    def addNode(self, loc: typing.Tuple[float,float], elevation: float, priority: int, contourIndex: int=None, parent: HydroPrimitive=None) -> HydroPrimitive:
         """Creates and adds a HydrologyPrimitive to the network
 
         :param loc: The location of the new node
@@ -789,68 +737,130 @@ class TerrainHoneycomb:
        ``resolution`` should be the same that was passed to the ShoreModel.
 
     """
-    def __init__(self, shore: ShoreModel=None, hydrology: HydrologyNetwork=None, resolution: float=None, edgeLength: float=None, binaryFile: typing.IO=None):
-        if shore is not None and hydrology is not None and resolution is not None and edgeLength is not None and binaryFile is not None:
-            self._initFromBinaryFile(resolution, edgeLength, shore, hydrology, binaryFile)
-    def _initFromBinaryFile(self, resolution, edgeLength, shore, hydrology, binaryFile):
+    def loadFromDB(self, resolution, edgeLength, shore, hydrology, db: sqlite3.Connection):
+        """Loads the terrain honeycomb from a database
+
+        :param resolution: The resolution of the underlying rasters in meters per pixel
+        :type resolution: float
+        :param edgeLength: The edge length in the simulation
+        :type edgeLength: float
+        :param shore: The ShoreModel for the land area
+        :type shore: ShoreModel
+        :param hydrology: The filled-out HydrologyNetwork for the land area
+        :type hydrology: HydrologyNetwork
+        :param db: The database connection
+        :type db: sqlite3.Connection
+        """
+        db.row_factory = sqlite3.Row
+
         self.edgeLength = edgeLength
         self.shore = shore
         self.hydrology = hydrology
 
         qs = { }
-        numQs = readValue('!Q', binaryFile)
-        for i in range(numQs):
-            saveID = readValue('!Q', binaryFile)
-            xLoc = readValue('!f', binaryFile)
-            yLoc = readValue('!f', binaryFile)
-            elevation = readValue('!f', binaryFile)
+        for qRow in db.execute('SELECT id, elevation, X(loc) AS locX, Y(loc) AS locY FROM Qs'):
+            id = qRow['id']
+            elevation = qRow['elevation']
+            locX = qRow['locX']
+            locY = qRow['locY']
 
             borderNodes = [ ]
-            numBorderNodes = readValue('!B', binaryFile)
-            for j in range(numBorderNodes):
-                borderNodes.append(readValue('!Q', binaryFile))
-
-            q = Q((xLoc,yLoc))
+            for borderNodeRow in db.execute('SELECT rivernode FROM Cells WHERE q = ?', (id,)):
+                borderNodes.append(borderNodeRow['rivernode'])
+            
+            q = Q((locX, locY))
             q.elevation = elevation
             q.nodes = borderNodes
 
-            qs[saveID] = q
-
-        edges = { }
-        numEdges = readValue('!Q', binaryFile)
-        for i in range(numEdges):
-            saveID = readValue('!Q', binaryFile)
-            q0ID = readValue('!Q', binaryFile)
-            q1ID = readValue('!Q', binaryFile)
-
-            bitmap = readValue('!B', binaryFile)
-            hasRiver = True if (bitmap & 0x4) == 0x4 else False
-            isShore = True if (bitmap & 0x2) == 0x2 else False
-            hasShoreSegment = True if (bitmap & 0x1) == 0x1 else False
-
-            if hasShoreSegment:
-                segment0 = readValue('!L', binaryFile)
-                segment1 = readValue('!L', binaryFile)
-
-                edges[saveID] = Edge(qs[q0ID],qs[q1ID],hasRiver,isShore,(segment0,segment1))
-            else:
-                edges[saveID] = Edge(qs[q0ID],qs[q1ID],hasRiver,isShore)
-
+            qs[id] = q
         self.qs = list(qs.values())
+        
+        edges = { }
+        for edgeRow in db.execute('SELECT id, Q0, Q1, hasRiver, isShore, shore0, shore1 FROM Edges'):
+            id = edgeRow['id']
+            Q0 = qs[edgeRow['Q0']]
+            Q1 = qs[edgeRow['Q1']]
+            hasRiver = edgeRow['hasRiver']
+            isShore = edgeRow['isShore']
+            shore0 = edgeRow['shore0']
+            shore1 = edgeRow['shore1']
 
-        self.cellsEdges = { }
-        self.cellsDownstreamEdges = { }
-        for cellID in range(len(hydrology)):
-            numEdges = readValue('!B', binaryFile)
-            if readValue('!B', binaryFile) == 0x1:
-                self.cellsDownstreamEdges[cellID] = edges[readValue('!Q', binaryFile)]
-            
-            edgeList = [ ]
-            for i in range(numEdges):
-                edgeList.append(edges[readValue('!Q', binaryFile)])
-            self.cellsEdges[cellID] = edgeList
+            edge = Edge(Q0, Q1, hasRiver, isShore, (shore0, shore1))
+            edges[id] = edge
+
+        self.cellsEdges: Dict[int, List[Edge]] = { } # cellID -> list of edges
+        # get all the edges that border each cell
+        for row in db.execute('SELECT edge, node0, node1 FROM EdgeCells'):
+            node0 = row['node0']
+            node1 = row['node1']
+            edgeID = row['edge']
+
+            if node0 not in self.cellsEdges:
+                self.cellsEdges[node0] = [ ]
+            self.cellsEdges[node0].append(edges[edgeID])
+            if node1 not in self.cellsEdges:
+                self.cellsEdges[node1] = [ ]
+            self.cellsEdges[node1].append(edges[edgeID])
+        # since EdgeCells excludes shore segments, we need to add them in
+        for row in db.execute('SELECT Edges.id, q1s.rivernode FROM Edges JOIN Cells AS q0s ON q0s.q = Edges.q0 JOIN Cells AS q1s ON q1s.q = Edges.q1 AND q1s.rivernode = q0s.rivernode WHERE isShore = 1'):
+            edgeID = row['id']
+            nodeID = row['rivernode']
+
+            if nodeID not in self.cellsEdges:
+                self.cellsEdges[nodeID] = [ ]
+            self.cellsEdges[nodeID].append(edges[edgeID])
+
+        self.cellsDownstreamRidges: Dict[int, Edge] = { }
+        # get all the pairs of children and their parents, and get the edges between them
+        for row in db.execute('SELECT rivernode, downstreamEdge FROM DownstreamEdges'):
+            nodeID = row['rivernode']
+            downstreamEdgeID = row['downstreamEdge']
+
+            self.cellsDownstreamRidges[nodeID] = edges[downstreamEdgeID]
+    def saveToDB(self, db: sqlite3.Connection):
+        """Saves the terrain honeycomb to a database
+
+        :param db: The database connection
+        :type db: sqlite3.Connection
+        """
+        #compile list of all primitives
+        createdEdges: typing.Dict[int, Edge] = { }
+        for cellID in range(len(self.hydrology)):
+            for edge in self.cellEdges(cellID):
+                if id(edge) not in createdEdges:
+                    createdEdges[id(edge)] = edge
+
+        with db:
+            db.execute("DELETE FROM Qs")
+            db.execute("DELETE FROM Cells")
+            db.execute("DELETE FROM Edges")
+
+            # write Qs
+            db.executemany("INSERT INTO Qs (id, elevation, loc) VALUES (?, ?, MakePoint(?, ?, 347895))", [(id(q), q.elevation, float(q.position[0]), float(q.position[1])) for q in self.qs])
+
+            # write cells using the edges, that way we can save the order of the Qs for a good polygon
+            for cellID, edges in self.cellsEdges.items():
+                # we have to put the Qs in order, so we can make a good polygon
+                # the edges are in order, and they are all chained together, so we can just use the order of the edges
+                # but the Qs of the edges are not in order, so we will have to figure out which Q is first for each edge
+                # the first Q of an edge is the Q that is not in the next edge, but _is_ in the previous edge
+                qs = [ edges[0].Q0 if edges[0].Q1 == edges[1].Q0 or edges[0].Q1 == edges[1].Q1 else edges[0].Q1 ]
+                for edgeIdx, edge in enumerate(edges[1:], start=1):
+                    # the first Q of this edge is the Q that is in the previous edge
+                    if edge.Q0 == edges[edgeIdx-1].Q0 or edge.Q0 == edges[edgeIdx-1].Q1:
+                        qs.append(edge.Q0)
+                    else:
+                        qs.append(edge.Q1)
+
+                # now we have the Qs in order, so we can make a polygon
+                db.executemany("INSERT INTO Cells (rivernode, polygonOrder, q) VALUES (?, ?, ?)", [(cellID, idx, id(q)) for idx, q in enumerate(qs)])
+
+            # write edges
+            db.executemany("INSERT INTO Edges (id, q0, q1, hasRiver, isShore, shore0, shore1) VALUES (?, ?, ?, ?, ?, ?, ?)", [(saveID, id(edge.Q0), id(edge.Q1), edge.hasRiver, edge.isShore, edge.shoreSegment[0] if edge.isShore else None, edge.shoreSegment[1] if edge.isShore else None) for saveID, edge in createdEdges.items()])
     def cellVertices(self, nodeID: int) -> typing.List[Point]:
         """Gets the coordinates of the Qs that define the shape of the node's cell
+
+        Note: This method does not return vertices in order.
 
         :param nodeID: The ID of the node whose shape you wish to query
         :type nodeID: int
@@ -858,7 +868,7 @@ class TerrainHoneycomb:
         :rtype: Math.Point
         """
         ridges = self.cellsEdges[nodeID] # the indices of the vertex boundaries
-        return [ridge.Q0.position for ridge in ridges] # positions of all the vertices
+        return list(set([ridge.Q0.position for ridge in ridges] + [ridge.Q1.position for ridge in ridges])) # positions of all the vertices
     def cellArea(self, node: HydroPrimitive) -> float:
         """Calculates the area of a cell
 
@@ -987,6 +997,7 @@ class T:
     def __init__(self, position, cell):
         self.position = position
         self.cell = cell
+        self.elevation = None
 
 class Terrain:
     """Holds and organizes the terrain primitives (:class:`T`)
@@ -998,31 +1009,38 @@ class Terrain:
     :param num_points: (Roughly) the number of points in each cell
     :type num_points: int
     """
-    def __init__(self, binaryFile: typing.IO=None):
-        if binaryFile is not None:
-            self._initReconstitute(binaryFile)
-    def _initReconstitute(self, binaryFile):
-        self.cellTs = { }
+    def loadFromDB(self, db: sqlite3.Connection):
+        """Loads the terrain primitives from a database
+
+        :param db: The database connection
+        :type db: sqlite3.Connection
+        """
+        db.row_factory = sqlite3.Row
+
+        self.cellTsDict = { }
         self.tList = [ ]
-        allpoints_list = [ ]
 
-        numPrimitives = readValue('!Q', binaryFile)
-        for i in range(numPrimitives):
-            loc = (readValue('!f', binaryFile), readValue('!f', binaryFile))
-            cellID = readValue('!I', binaryFile)
-            elevation = readValue('!f', binaryFile)
-
-            t = T(loc,cellID)
-            t.elevation = elevation
-
-            if cellID not in self.cellTs:
-                self.cellTs[cellID] = [ ]
-            self.cellTs[cellID].append(t)
+        # get all the primitives
+        for row in db.execute("SELECT rivercell, elevation, X(loc) AS locX, Y(loc) AS locY FROM Ts"):
+            t = T((row["locX"], row["locY"]), row["rivercell"])
+            t.elevation = row["elevation"]
+            if row["rivercell"] not in self.cellTsDict:
+                self.cellTsDict[row["rivercell"]] = [ ]
+            self.cellTsDict[row["rivercell"]].append(t)
             self.tList.append(t)
-            allpoints_list.append(loc)
 
+        allpoints_list = [[t.position[0],t.position[1]] for t in self.allTs()]
         allpoints_nd = np.array(allpoints_list)
         self.apkd = cKDTree(allpoints_nd)
+    def saveToDB(self, db: sqlite3.Connection):
+        """Saves the terrain primitives to a database
+
+        :param db: The database connection
+        :type db: sqlite3.Connection
+        """
+        with db:
+            db.execute("DELETE FROM Ts")
+            db.executemany("INSERT INTO Ts (id, rivercell, elevation, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(idx, t.cell, t.elevation, t.position[0], t.position[1]) for idx, t in enumerate(self.tList)])
     def allTs(self) -> typing.List[T]:
         """Simply returns all the terrain primitives
 
@@ -1030,7 +1048,7 @@ class Terrain:
         :rtype: list[T]
         """
         return self.tList.copy()
-    def cellTs(self, cell: int) -> typing.List[T]:
+    def cellTsDict(self, cell: int) -> typing.List[T]:
         """Gets the terrain primitives within a given cell
 
         :param cell: The ID of the cell you wish to query
