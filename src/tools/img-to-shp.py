@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import argparse
 import cv2 as cv
 import numpy as np
@@ -80,9 +82,15 @@ contours, hierarchy = cv.findContours(thresh, cv.RETR_LIST, cv.CHAIN_APPROX_NONE
 if len(contours) > 1:
     print('WARNING: Multiple contours identified. The program may not have correctly')
     print('identified the shoreline.')
+
+# We assume that the first contour is the shoreline. If there are multiple contours, there's no way to know which is the shoreline, anyway.
 contour = contours[0]
+# The shape of the contour array is (N, 1, 2), where N is the number of points in the contour. That middle dimension is unnecessary, so we remove it.
 contour=contour.reshape(-1,2)
-contour=np.flip(contour,1)
+# Now the array is (N, 2).
+# The order of the coordinates is (x,y), so there's no need to flip on that axis.
+# But the points are in counterclockwise order. Pyshp expects clockwise order, so we flip the array on that axis.
+contour=np.flip(contour,0)
 
 # fromImageCoordinates(
 #     (self.contour[index][1],self.contour[index][0]),
@@ -98,12 +106,14 @@ print(f'After transform: {contour}')
 # TODO raise exception if dimensions not square
 # TODO raise exception if multiple contours
 
-# with shapefile.Writer(outputFile, shapeType=5) as shp:
-#     #         0         1          2          3          4          5           6         7        8         (beginning)
-#     shape = [ [0,-437], [35,-113], [67,-185], [95,-189], [70,-150], [135,-148], [157,44], [33,77], [-140,8], [0,-437] ]
-#     shape.reverse() # pyshp expects shapes to be clockwise
+with shapefile.Writer(outputFile, shapeType=5) as shp:
+    shp.field('name', 'C')
 
-#     shp.field('name', 'C')
+    shp.poly([ contour.tolist() ])
+    shp.record('polygon0')
 
-#     shp.poly([ shape ])
-#     shp.record('polygon0')
+## Create the .prj file to be read by GIS software
+with open(f'{outputFile}.prj', 'w') as prj:
+    prjstr = f'PROJCS["unknown",GEOGCS["GCS_unknown",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Orthographic"],PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],PARAMETER["Longitude_Of_Center",{args.longitude}],PARAMETER["Latitude_Of_Center",{args.latitude}],UNIT["Meter",1.0]]'
+    prj.write(prjstr)
+    prj.close()
