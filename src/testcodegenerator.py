@@ -1,12 +1,14 @@
 import typing
 
+import io
+import shapefile
 import numpy as np
 from PIL import Image
 from PIL import ImageDraw
 from scipy import interpolate
 from shapely.geometry import asLineString
 
-from DataModel import HydrologyNetwork, Q, Edge, ShoreModelImage, TerrainHoneycomb
+from DataModel import HydrologyNetwork, Q, Edge, ShoreModel, TerrainHoneycomb
 
 class RasterDataMock:
     def __init__(self, value: float) -> None:
@@ -169,17 +171,34 @@ def getPredefinedObjects0():
     edgelength = 2320.5
     resolution = 93.6
     r = 100
-    image = Image.new('L', (4*r,4*r))
+    # image = Image.new('L', (4*r,4*r))
 
-    drawer = ImageDraw.Draw(image)
+    # drawer = ImageDraw.Draw(image)
 
     #Keep in mind that these are _image_ coordinates
-    drawer.polygon([         (150,134),  (100,200),(150,286),   (250,286),  (300,200),(250,134)], 255)
+    # drawer.polygon([         (150,134),  (100,200),(150,286),   (250,286),  (300,200),(250,134)], 255)
     #This should work out to (-100,132), (-200,0), (-100,-172), (100,-172), (200,0),  (100,132)
 
-    image.save('imageFile.png')
+    # image.save('imageFile.png')
 
-    shore = ShoreModelImage(resolution, '../in/test-example/in/gamma.png')
+    # shore = ShoreModelImage(resolution, '../in/test-example/in/gamma.png')
+
+    shpBuf = io.BytesIO()
+    shxBuf = io.BytesIO()
+    dbfBuf = io.BytesIO()
+
+    with shapefile.Writer(shp=shpBuf, shx=shxBuf, dbf=dbfBuf, shapeType=5) as shp:
+        #         0           1         2            3           4         5          (beginning)
+        shape = [ (-100,132), (-200,0), (-100,-172), (100,-172), (200,0),  (100,132), (-100,132) ]
+        shape = [ (x*resolution, y*resolution) for (x,y) in shape]
+        shape.reverse() # pyshp expects shapes to be clockwise
+
+        shp.field('name', 'C')
+
+        shp.poly([ shape ])
+        shp.record('polygon0')
+
+    shore = ShoreModel(shpFile=shpBuf, shxFile=shxBuf, dbfFile=dbfBuf)
 
     hydrology = HydrologyNetwork()
     cells = TerrainHoneycomb()
