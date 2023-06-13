@@ -246,8 +246,10 @@ try:
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE
         )
-        # proc.stdin.write(params.toBinary()) # send the parameters to the native module
         print('\tData sent to native module...')
+
+        # print(f'Process called: ./{buildRiversExe} {outputFile} {Pa} {Pc} {sigma} {eta} {zeta} {slopeRate} {maxTries} {riverAngleDev}')
+        # exit()
 
         # Display updates as native module builds the network
         cyclesRun = 0
