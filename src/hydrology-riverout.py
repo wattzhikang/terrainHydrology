@@ -55,7 +55,7 @@ with open(f'{outputFile}.prj', 'w') as prj:
 db = SaveFile.openDB(inputFile)
 resolution = SaveFile.getResolution(db)
 edgeLength = SaveFile.getEdgeLength(db)
-shore: DataModel.ShoreModelShapefile = DataModel.ShoreModelShapefile()
+shore: DataModel.ShoreModel = DataModel.ShoreModel()
 shore.loadFromDB(db)
 hydrology: DataModel.HydrologyNetwork = DataModel.HydrologyNetwork(db)
 cells: DataModel.TerrainHoneycomb = DataModel.TerrainHoneycomb()
