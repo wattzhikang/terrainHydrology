@@ -465,7 +465,7 @@ class HydrologyNetwork:
         with db:
             db.execute('DELETE FROM RiverNodes')
             # write river nodes
-            db.executemany("INSERT INTO RiverNodes (id, parent, elevation, localwatershed, inheritedwatershed, flow, loc) VALUES (?, ?, ?, ?, ?, ?, MakePoint(?, ?, 347895))", [(node.id, node.parent.id if node.parent is not None else None, node.elevation, node.localWatershed, node.inheritedWatershed, node.flow, node.x(), node.y()) for node in self.allNodes()])
+            db.executemany("INSERT INTO RiverNodes (id, parent, elevation, localwatershed, inheritedwatershed, flow, loc) VALUES (?, ?, ?, ?, ?, ?, MakePoint(?, ?, 347895))", [(node.id, node.parent.id if node.parent is not None else None, node.elevation, node.localWatershed, node.inheritedWatershed, node.flow, float(node.x()), float(node.y())) for node in self.allNodes()])
 
             # write river paths
             for node in self.allNodes():
@@ -903,15 +903,27 @@ class TerrainHoneycomb:
     def cellVertices(self, nodeID: int) -> typing.List[Point]:
         """Gets the coordinates of the Qs that define the shape of the node's cell
 
-        Note: This method does not return vertices in order.
-
         :param nodeID: The ID of the node whose shape you wish to query
         :type nodeID: int
         :return: The coordinates of the cell's shape
         :rtype: Math.Point
         """
-        ridges = self.cellsEdges[nodeID] # the indices of the vertex boundaries
-        return list(set([ridge.Q0.position for ridge in ridges] + [ridge.Q1.position for ridge in ridges])) # positions of all the vertices
+
+        # we have to put the Qs in order, so we can make a good polygon
+        # the edges are in order, and they are all chained together, so we can just use the order of the edges
+        # but the Qs of the edges are not in order, so we will have to figure out which Q is first for each edge
+        # the first Q of an edge is the Q that is not in the next edge, but _is_ in the previous edge
+        edges = self.cellsEdges[nodeID]
+        qs = [ edges[0].Q0 if edges[0].Q1 == edges[1].Q0 or edges[0].Q1 == edges[1].Q1 else edges[0].Q1 ]
+        for edgeIdx, edge in enumerate(edges[1:], start=1):
+            # the first Q of this edge is the Q that is in the previous edge
+            if edge.Q0 == edges[edgeIdx-1].Q0 or edge.Q0 == edges[edgeIdx-1].Q1:
+                qs.append(edge.Q0)
+            else:
+                qs.append(edge.Q1)
+
+        # now get the positions of the Qs with a list comprehension
+        return [q.position for q in qs]
     def cellArea(self, node: HydroPrimitive) -> float:
         """Calculates the area of a cell
 

@@ -119,7 +119,7 @@ def dropRiverSlopeRaster(db: sqlite3.Connection) -> None:
     :type db: sqlite3.Connection
     """
     with db:
-        db.execute('DROP TABLE RiverSlope')
+        db.execute('DROP TABLE IF EXISTS RiverSlope')
 
 def dumpMouthNodes(db: sqlite3.Connection, hydrology: HydrologyNetwork) -> None:
     """Add the mouth nodes to the database for communication to the native module
