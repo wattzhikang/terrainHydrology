@@ -178,18 +178,20 @@ if args.accelerate:
         print('One or both of the executables does not exist. Run "make" in the src/ directory to build them.')
         exit()
 
-# Initialize the save file
-db = SaveFile.createDB(outputFile, resolution, edgeLength, args.longitude, args.latitude)
-
 # Load input images
 
 if inputDomain[-4:] == '.shp':
-    shore = DataModel.ShoreModelShapefile(inputDomain)
+    shore = DataModel.ShoreModel(inputDomain)
 else:
-    shore = DataModel.ShoreModelImage(resolution, inputDomain)
+    # if the input is not a shapefile, complain and exit
+    print('Input domain must be a shapefile. Use img-to-shp.py to convert an image to a shapefile.')
+    exit()
 
 terrainSlope = DataModel.RasterData(inputTerrain, resolution)
 riverSlope = DataModel.RasterData(inputRiverSlope, resolution)
+
+# Initialize the save file
+db = SaveFile.createDB(outputFile, resolution, edgeLength, args.longitude, args.latitude)
 
 # Save the shore dimensions
 SaveFile.setShoreBoundaries(db, shore)
@@ -244,8 +246,10 @@ try:
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE
         )
-        # proc.stdin.write(params.toBinary()) # send the parameters to the native module
         print('\tData sent to native module...')
+
+        # print(f'Process called: ./{buildRiversExe} {outputFile} {Pa} {Pc} {sigma} {eta} {zeta} {slopeRate} {maxTries} {riverAngleDev}')
+        # exit()
 
         # Display updates as native module builds the network
         cyclesRun = 0

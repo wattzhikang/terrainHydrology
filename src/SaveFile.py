@@ -92,8 +92,8 @@ def setShoreBoundaries(db: sqlite3.Connection, shore: ShoreModel) -> None:
     with db:
         db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('minX', 0))
         db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('minY', 0))
-        db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('maxX', shore.realShape[0]))
-        db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('maxY', shore.realShape[1]))
+        db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('maxX', float(shore.realShape[0])))
+        db.execute('INSERT OR REPLACE INTO Parameters (key, value) VALUES (?, ?)', ('maxY', float(shore.realShape[1])))
 
 def createRiverSlopeRaster(db: sqlite3.Connection, riverSlope: RasterData) -> None:
     """Saves the river slope raster to the database
@@ -119,7 +119,7 @@ def dropRiverSlopeRaster(db: sqlite3.Connection) -> None:
     :type db: sqlite3.Connection
     """
     with db:
-        db.execute('DROP TABLE RiverSlope')
+        db.execute('DROP TABLE IF EXISTS RiverSlope')
 
 def dumpMouthNodes(db: sqlite3.Connection, hydrology: HydrologyNetwork) -> None:
     """Add the mouth nodes to the database for communication to the native module
@@ -135,7 +135,7 @@ def dumpMouthNodes(db: sqlite3.Connection, hydrology: HydrologyNetwork) -> None:
         # db.execute('CREATE TABLE MouthNodes (id INTEGER PRIMARY KEY, x REAL, y REAL, z REAL);')
         db.execute('ALTER TABLE RiverNodes ADD COLUMN priority INTEGER DEFAULT NULL;')
 
-        db.executemany("INSERT INTO RiverNodes (id, priority, contourIndex, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(hydrology.node(nodeID).id, hydrology.node(nodeID).priority, hydrology.node(nodeID).contourIndex, hydrology.node(nodeID).x(), hydrology.node(nodeID).y()) for nodeID in hydrology.mouthNodes])
+        db.executemany("INSERT INTO RiverNodes (id, priority, contourIndex, loc) VALUES (?, ?, ?, MakePoint(?, ?, 347895))", [(hydrology.node(nodeID).id, hydrology.node(nodeID).priority, hydrology.node(nodeID).contourIndex, float(hydrology.node(nodeID).x()), float(hydrology.node(nodeID).y())) for nodeID in hydrology.mouthNodes])
 
 def dropMouthNodes(db: sqlite3.Connection) -> None:
     """Remove the data and schema that was created by dumpMouthNodes()

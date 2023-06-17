@@ -56,7 +56,7 @@ with open(f'{outputFile}.prj', 'w') as prj:
 db = SaveFile.openDB(inputFile)
 resolution = SaveFile.getResolution(db)
 edgeLength = SaveFile.getEdgeLength(db)
-shore: DataModel.ShoreModelShapefile = DataModel.ShoreModelShapefile()
+shore: DataModel.ShoreModel = DataModel.ShoreModel()
 shore.loadFromDB(db)
 hydrology: DataModel.HydrologyNetwork = DataModel.HydrologyNetwork(db)
 cells: DataModel.TerrainHoneycomb = DataModel.TerrainHoneycomb()
@@ -81,7 +81,7 @@ with shapefile.Writer(outputFile, shapeType=1) as w:
 
         if node.parent is not None:
             w.record(
-                node.id, hydrology.node(node.parent).id,
+                node.id, node.parent.id,
                 node.elevation, node.localWatershed,
                 node.inheritedWatershed, node.flow
             )

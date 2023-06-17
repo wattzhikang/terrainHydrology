@@ -97,22 +97,45 @@ class RasterData:
                 binary = row
         return binary
 
-class ShoreModel(metaclass=abc.ABCMeta):
+class ShoreModel:
     """This class represents the shoreline of the land area.
-
-    This is an abstract class; some logic is common to all ShoreModel
-    implementations, but others must be implemented separately.
 
     Fundamentally, a shoreline is a list of points that make a polygon. This
     polygon represents the land area.
 
-    :cvar realShape: The spatial dimensions of the area that the gamma image covers, in meters
-    :vartype realShape: numpy.ndarray[float,float]
-
-    .. note::
+    There are 2 ways to initialize this class. If all of your shapefile files have the same
+    name (eg myshore.shp, myshore.shx, myshore.dbf), you can pass in the path to the shapefile,
+    minus the extension (eg mydirectory/myshore). If your files have different names, or you
+    want to pass in file-like objects, you can pass in the individual files.
     
-       Shape variables are all in order y,x. (I think? This needs to be updated.)
+    :param inputFileName: The path to the shapefile files. Note that this is not a path to a file, but a path to the file minus the extension. Thus, you can only use this parameter if all of your shapefile files have the same name.
+    :type inputFileName: str
+    :param shpFile: A file-like object containing the .shp file
+    :type shpFile: typing.IO
+    :param shxFile: A file-like object containing the .shx file
+    :type shxFile: typing.IO
+    :param dbfFile: A file-like object containing the .dbf file
+    :type dbfFile: typing.IO
     """
+    def __init__(self, inputFileName: str=None, shpFile=None, shxFile=None, dbfFile=None) -> None:
+        reader = None
+
+        if inputFileName is not None:
+            reader = shapefile.Reader(inputFileName, shapeType=5)
+        elif shpFile is not None and dbfFile is not None:
+            reader = shapefile.Reader(shp=shpFile, dbf=dbfFile, shapeType=5)
+        elif shpFile is not None and shxFile is not None and dbfFile is not None:
+            reader = shapefile.Reader(shp=shpFile, shx=shxFile, dbf=dbfFile, shapeType=5)
+        else:
+            return
+
+        with reader:
+            self.contour = reader.shape(0).points[1:] # the first and last points are identical, so remove them
+            self.contour.reverse() # pyshp stores shapes in clockwise order, but we want counterclockwise
+            self.contour = np.array(self.contour, dtype=np.dtype(np.float32))
+
+        self.realShape = (max([p[0] for p in self.contour])-min([p[0] for p in self.contour]),max([p[1] for p in self.contour])-min([p[1] for p in self.contour]))
+        self.pointTree = cKDTree(self.contour)
     def closestNPoints(self, loc: Point, n: int) -> typing.List[int]:
         """Gets the closest N shoreline points to a given point
 
@@ -127,7 +150,6 @@ class ShoreModel(metaclass=abc.ABCMeta):
         n = n if n > 1 else [n]
         distances, indices = self.pointTree.query(loc, k=n)
         return indices
-    @abc.abstractmethod
     def distanceToShore(self, loc: Point) -> float:
         """Gets the distance between a point and the shore
 
@@ -138,7 +160,8 @@ class ShoreModel(metaclass=abc.ABCMeta):
         :return: The distance between `loc` and the shore in meters
         :rtype: float
         """
-        raise NotImplementedError
+        # in this class, the contour is stored as x,y, so we put the test points in as x,y
+        return cv.pointPolygonTest(self.contour, (loc[0],loc[1]), True)
     def isOnLand(self, loc: Point) -> bool:
         """Determines whether or not a point is on land
 
@@ -148,7 +171,6 @@ class ShoreModel(metaclass=abc.ABCMeta):
         :rtype: bool
         """
         return self.distanceToShore(loc) >= 0
-    @abc.abstractmethod
     def __getitem__(self, index: int):
         """Gets a point on the shore by index
 
@@ -157,7 +179,9 @@ class ShoreModel(metaclass=abc.ABCMeta):
         :return: The index-th coordinate of the shoreline
         :rtype: `Math.Point`
         """
-        raise NotImplementedError
+        # no need to flip the points, since they're stored as x,y
+        # no need to convert from a coordinate system, since shapefiles are expected to be in the same coordinate system as the project
+        return self.contour[index]
     def __len__(self):
         """The number of points that make up the shore
 
@@ -195,93 +219,6 @@ class ShoreModel(metaclass=abc.ABCMeta):
 
         # This will be a problem if the original object was a ShoreModelImage, but we're going to axe that class anyway
         self.realShape = (max([p[0] for p in self.contour])-min([p[0] for p in self.contour]),max([p[1] for p in self.contour])-min([p[1] for p in self.contour]))
-
-class ShoreModelImage(ShoreModel):
-    """This class creates a shoreline based on a black-and-white image
-
-    If you pass in gammaFileName and no binaryFile, this object will be
-    initialized based on an image. If you pass in binaryFile with no
-    gammaFileImage, this object will be reconstituted from a binary file.
-
-    :param resolution: The resolution of the input image in meters per pixel
-    :type resolution: float
-    :param gammaFileName: The path to the image that defines the shoreline
-    :type gammaFileName: str
-    :param binaryFile: A binary file
-    :type binaryFile: typing.IO
-
-    .. note::
-        If passing in a binary file, you must seek to the appropriate location.
-    """
-    def __init__(self, resolution: float, gammaFileName: str=None) -> None:
-        """Constructor
-        """
-
-        self.resolution = resolution
-
-        if gammaFileName is None:
-            return
-
-        self.img = cv.imread(gammaFileName)
-        
-        self.imgray = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY) # a black-and-white version of the input image
-        self.rasterShape = self.imgray.shape
-        self.realShape = (self.imgray.shape[0] * self.resolution, self.imgray.shape[1] * self.resolution)
-        ret, thresh = cv.threshold(self.imgray, 127, 255, 0)
-        contours, hierarchy = cv.findContours(thresh, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
-        test = cv.cvtColor(thresh, cv.COLOR_GRAY2BGR) # not sure what this line does or why it exists
-        if len(contours) > 1:
-            print('WARNING: Multiple contours identified. The program may not have correctly')
-            print('identified the land.')
-        self.contour = contours[0]
-        self.contour=self.contour.reshape(-1,2)
-        self.contour=np.flip(self.contour,1)
-
-        realPoints = [fromImageCoordinates((loc[1],loc[0]), self.imgray.shape, resolution) for loc in self.contour]
-        self.pointTree = cKDTree(realPoints)
-        
-        self.imgOutline = self.img.copy()
-        cv.drawContours(self.imgOutline, contours, -1, (0,255,0), 2)
-        
-        # TODO raise exception if dimensions not square
-        # TODO raise exception if multiple contours
-    def distanceToShore(self, loc: Point) -> float:
-        loc = toImageCoordinates(loc, self.imgray.shape, self.resolution)
-
-        #    for some reason this method is      y, x
-        return cv.pointPolygonTest(self.contour,(loc[1],loc[0]),True) * self.resolution
-    def __getitem__(self, index: int):
-        # openCV stores contour points as (y,x), so we need to flip them
-        # we also need to convert from image coordinates to project coordinates
-        return fromImageCoordinates((self.contour[index][1],self.contour[index][0]), self.imgray.shape, self.resolution)
-
-class ShoreModelShapefile(ShoreModel):
-    def __init__(self, inputFileName: str=None, shpFile=None, shxFile=None, dbfFile=None) -> None:
-        reader = None
-
-        if inputFileName is not None:
-            reader = shapefile.Reader(inputFileName, shapeType=5)
-        elif shpFile is not None and dbfFile is not None:
-            reader = shapefile.Reader(shp=shpFile, dbf=dbfFile, shapeType=5)
-        elif shpFile is not None and shxFile is not None and dbfFile is not None:
-            reader = shapefile.Reader(shp=shpFile, shx=shxFile, dbf=dbfFile, shapeType=5)
-        else:
-            return
-
-        with reader:
-            self.contour = reader.shape(0).points[1:] # the first and last points are identical, so remove them
-            self.contour.reverse() # pyshp stores shapes in clockwise order, but we want counterclockwise
-            self.contour = np.array(self.contour, dtype=np.dtype(np.float32))
-
-        self.realShape = (max([p[0] for p in self.contour])-min([p[0] for p in self.contour]),max([p[1] for p in self.contour])-min([p[1] for p in self.contour]))
-        self.pointTree = cKDTree(self.contour)
-    def distanceToShore(self, loc: Point) -> bool:
-        # in this class, the contour is stored as x,y, so we put the test points in as x,y
-        return cv.pointPolygonTest(self.contour, (loc[0],loc[1]), True)
-    def __getitem__(self, index: int):
-        # no need to flip the points, since they're stored as x,y
-        # no need to convert from a coordinate system, since shapefiles are expected to be in the same coordinate system as the project
-        return self.contour[index]
 
 class HydroPrimitive:
     """Represents a certain stretch of river
@@ -422,7 +359,7 @@ class HydrologyNetwork:
         with db:
             db.execute('DELETE FROM RiverNodes')
             # write river nodes
-            db.executemany("INSERT INTO RiverNodes (id, parent, elevation, localwatershed, inheritedwatershed, flow, loc) VALUES (?, ?, ?, ?, ?, ?, MakePoint(?, ?, 347895))", [(node.id, node.parent.id if node.parent is not None else None, node.elevation, node.localWatershed, node.inheritedWatershed, node.flow, node.x(), node.y()) for node in self.allNodes()])
+            db.executemany("INSERT INTO RiverNodes (id, parent, elevation, localwatershed, inheritedwatershed, flow, loc) VALUES (?, ?, ?, ?, ?, ?, MakePoint(?, ?, 347895))", [(node.id, node.parent.id if node.parent is not None else None, node.elevation, node.localWatershed, node.inheritedWatershed, node.flow, float(node.x()), float(node.y())) for node in self.allNodes()])
 
             # write river paths
             for node in self.allNodes():
@@ -860,15 +797,27 @@ class TerrainHoneycomb:
     def cellVertices(self, nodeID: int) -> typing.List[Point]:
         """Gets the coordinates of the Qs that define the shape of the node's cell
 
-        Note: This method does not return vertices in order.
-
         :param nodeID: The ID of the node whose shape you wish to query
         :type nodeID: int
         :return: The coordinates of the cell's shape
         :rtype: Math.Point
         """
-        ridges = self.cellsEdges[nodeID] # the indices of the vertex boundaries
-        return list(set([ridge.Q0.position for ridge in ridges] + [ridge.Q1.position for ridge in ridges])) # positions of all the vertices
+
+        # we have to put the Qs in order, so we can make a good polygon
+        # the edges are in order, and they are all chained together, so we can just use the order of the edges
+        # but the Qs of the edges are not in order, so we will have to figure out which Q is first for each edge
+        # the first Q of an edge is the Q that is not in the next edge, but _is_ in the previous edge
+        edges = self.cellsEdges[nodeID]
+        qs = [ edges[0].Q0 if edges[0].Q1 == edges[1].Q0 or edges[0].Q1 == edges[1].Q1 else edges[0].Q1 ]
+        for edgeIdx, edge in enumerate(edges[1:], start=1):
+            # the first Q of this edge is the Q that is in the previous edge
+            if edge.Q0 == edges[edgeIdx-1].Q0 or edge.Q0 == edges[edgeIdx-1].Q1:
+                qs.append(edge.Q0)
+            else:
+                qs.append(edge.Q1)
+
+        # now get the positions of the Qs with a list comprehension
+        return [q.position for q in qs]
     def cellArea(self, node: HydroPrimitive) -> float:
         """Calculates the area of a cell
 
