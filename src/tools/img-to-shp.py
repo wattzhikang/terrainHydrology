@@ -94,9 +94,10 @@ contour = contours[0]
 # The shape of the contour array is (N, 1, 2), where N is the number of points in the contour. That middle dimension is unnecessary, so we remove it.
 contour=contour.reshape(-1,2)
 # Now the array is (N, 2).
-# The order of the coordinates is (x,y), so there's no need to flip on that axis.
-# But the points are in counterclockwise order. Pyshp expects clockwise order, so we flip the array on that axis.
-contour=np.flip(contour,0)
+# The order of the coordinates is (y,x), and the points are in counterclockwise
+# order. We want (x,y), and Pyshp expects clockwise order, so we flip the array
+# on both axes.
+contour=np.flip(contour)
 
 # transform the contour to real-world coordinates
 transform = getCoordinateTransformFunction(rasterShape, resolution)
