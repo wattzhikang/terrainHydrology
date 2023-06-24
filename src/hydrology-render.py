@@ -11,9 +11,7 @@ from rasterio.transform import Affine
 import time
 import math
 
-import DataModel
-import SaveFile
-import Math
+from lib import DataModel, SaveFile, Math
 
 parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'

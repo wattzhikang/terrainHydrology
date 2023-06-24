@@ -5,7 +5,6 @@ import numpy as np
 import networkx as nx
 from scipy.spatial import cKDTree
 from scipy.spatial import Voronoi
-from poisson import PoissonGenerator
 from PIL import Image
 import shapely.geometry as geom
 import struct
@@ -20,8 +19,7 @@ import typing
 from typing import List
 from typing import Dict
 
-import Math
-from Math import Point
+from .Math import Point, convexPolygonArea, pointInConvexPolygon
 
 def toImageCoordinates(loc: typing.Tuple[float,float], imgSize: typing.Tuple[float,float], resolution: float) -> typing.Tuple[float,float]:
     x = loc[0]
@@ -827,7 +825,7 @@ class TerrainHoneycomb:
         :type node: HydroPrimitive
         """
         try:
-            return Math.convexPolygonArea(
+            return convexPolygonArea(
                 node.position,
                 self.cellVertices(node.id)
             )
@@ -881,7 +879,7 @@ class TerrainHoneycomb:
         :return: True of point ``p`` is in the cell that corresponds to ``n``
         :rtype: bool
         """
-        return Math.pointInConvexPolygon(p, self.cellVertices(n), self.hydrology.node(n).position)
+        return pointInConvexPolygon(p, self.cellVertices(n), self.hydrology.node(n).position)
     def cellRidges(self, n: int) -> typing.List[Edge]:
         """Returns cell edges that are not transected by a river, and are not part of the shoreline
 

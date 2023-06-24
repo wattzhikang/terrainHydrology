@@ -4,10 +4,10 @@ from scipy.spatial import cKDTree
 import numpy as np
 from tqdm import trange
 
-from poisson import PoissonGenerator
+from .poisson import PoissonGenerator
 
-from DataModel import T, ShoreModel, HydrologyNetwork, TerrainHoneycomb, Terrain
-import Math
+from .DataModel import T, ShoreModel, HydrologyNetwork, TerrainHoneycomb, Terrain
+from .Math import point_segment_distance_is_endpoint, distance
 
 def initializeTerrain(hydrology: HydrologyNetwork, cells: TerrainHoneycomb, num_points: int) -> Terrain:
     """Generates the terrain primitives for the terrain and initializes the Terrain object
@@ -74,7 +74,7 @@ def computePrimitiveElevation(t: T, shore: ShoreModel, hydrology: HydrologyNetwo
     for ridge in ridges:
         q0 = ridge.Q0
         q1 = ridge.Q1
-        dist, isToEndpoint = Math.point_segment_distance_is_endpoint(
+        dist, isToEndpoint = point_segment_distance_is_endpoint(
             t.position[0],t.position[1],
             q0.position[0],q0.position[1],
             q1.position[0],q1.position[1]
@@ -82,16 +82,16 @@ def computePrimitiveElevation(t: T, shore: ShoreModel, hydrology: HydrologyNetwo
         if closestRdist is not None and dist > closestRdist:
             continue
         if isToEndpoint:
-            if Math.distance(q0.position,t.position) < Math.distance(q1.position,t.position):
-                closestRdist = Math.distance(q0.position,t.position)
+            if distance(q0.position,t.position) < distance(q1.position,t.position):
+                closestRdist = distance(q0.position,t.position)
                 ridgeElevation = q0.elevation
             else:
-                closestRdist = Math.distance(q1.position,t.position)
+                closestRdist = distance(q1.position,t.position)
                 ridgeElevation = q1.elevation
         else:
             closestRdist = dist
             try:
-                ridgeElevation = q0.elevation + (math.sqrt(Math.distance(q0.position,t.position)**2 - dist**2) / Math.distance(q0.position,q1.position)) * (q1.elevation - q0.elevation)
+                ridgeElevation = q0.elevation + (math.sqrt(distance(q0.position,t.position)**2 - dist**2) / distance(q0.position,q1.position)) * (q1.elevation - q0.elevation)
             except:
                 print(f'That math domain error has occured')
                 print(f'q0.elevation: {q0.elevation}, q0.position: {q0.position}, t.positon: {t.position}, dist: {dist}, q1.position: {q1.position}, q1.elevation: {q1.elevation}')

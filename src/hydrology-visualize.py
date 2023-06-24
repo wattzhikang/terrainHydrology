@@ -8,9 +8,9 @@ import networkx as nx
 import cv2 as cv
 from scipy.spatial import voronoi_plot_2d
 
-import DataModel
-import SaveFile
-import Math
+from lib import DataModel
+from lib import SaveFile
+from lib import Math
 
 parser = argparse.ArgumentParser(
     description='Visualizes an already-generated data model. Useful for debugging or tinkering.'

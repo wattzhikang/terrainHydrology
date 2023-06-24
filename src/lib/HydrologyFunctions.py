@@ -2,13 +2,11 @@ import random
 import math
 import struct
 
-import Math
+from .Math import point_segment_distance
 
 # imports and definitions for type hinting
 import typing
-import DataModel
-HydroPrimitive = DataModel.HydroPrimitive
-HydrologyNetwork = DataModel.HydrologyNetwork
+from .DataModel import HydroPrimitive, HydrologyNetwork, TerrainHoneycomb
 
 def selectNode(candidate_nodes: typing.List[HydroPrimitive] , zeta: float) -> HydroPrimitive:
     """Given a list of candidate nodes, this function selects the next node to expand
@@ -290,7 +288,7 @@ def isAcceptablePosition(point: typing.Tuple[float,float], params: HydrologyPara
         return False
     # is the point too close to other nodes?
     for node0,node1 in params.hydrology.edgesWithinRadius(point, 2*params.edgeLength): # Go through each edge
-        dist = Math.point_segment_distance( # Distance to the edge (edge is a line segment)
+        dist = point_segment_distance( # Distance to the edge (edge is a line segment)
             point[0],point[1],
             node0.x(),node0.y(), # Line segment endpoint 1 (x,y)
             node1.x(),node1.y()  # Line segment endpoint 2 (x,y)
@@ -330,7 +328,7 @@ def classify(node: HydroPrimitive, hydrology: HydrologyNetwork, edgeLength: floa
         else :
             child.rosgen = 'DA'
 
-def getLocalWatershed(node: HydroPrimitive, cells: DataModel.TerrainHoneycomb) -> float:
+def getLocalWatershed(node: HydroPrimitive, cells: TerrainHoneycomb) -> float:
     """Gets the area of the watershed represented by this particular cell. This is just the cell's area.
     
     :param node: The node of the cell

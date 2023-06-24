@@ -4,9 +4,7 @@ import argparse
 import shapefile
 from tqdm.std import trange
 
-import SaveFile
-
-import DataModel
+from lib import SaveFile, DataModel
 
 parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'

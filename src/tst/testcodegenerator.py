@@ -8,7 +8,7 @@ from PIL import ImageDraw
 from scipy import interpolate
 from shapely.geometry import asLineString
 
-from DataModel import HydrologyNetwork, Q, Edge, ShoreModel, TerrainHoneycomb
+from lib.DataModel import HydrologyNetwork, Q, Edge, ShoreModel, TerrainHoneycomb
 
 class RasterDataMock:
     def __init__(self, value: float) -> None:

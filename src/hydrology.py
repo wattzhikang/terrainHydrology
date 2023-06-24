@@ -24,15 +24,7 @@ import os.path
 import struct
 import traceback
 
-import DataModel
-import HydrologyFunctions
-import Math
-import SaveFile
-import TerrainPrimitiveFunctions
-import RiverInterpolationFunctions
-import TerrainHoneycombFunctions
-
-import testcodegenerator
+from lib import DataModel, HydrologyFunctions, Math, SaveFile, TerrainPrimitiveFunctions, RiverInterpolationFunctions, TerrainHoneycombFunctions, testcodegenerator
 
 buildRiversExe = 'src/native-module/bin/buildRivers'
 computePrimitivesExe = 'src/native-module/bin/terrainPrimitives'

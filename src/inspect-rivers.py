@@ -5,7 +5,7 @@ from math import sqrt
 import matplotlib.pyplot as plt
 import numpy as np
 
-import SaveFile
+from lib import SaveFile
 
 parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'

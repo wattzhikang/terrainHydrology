@@ -2,9 +2,9 @@ import typing
 
 import numpy as np
 from scipy.spatial import Voronoi
-import Math
 
-from DataModel import Point, ShoreModel, TerrainHoneycomb, Q, Edge, HydroPrimitive, HydrologyNetwork, RasterData
+from .Math import edgeIntersection
+from .DataModel import Point, ShoreModel, TerrainHoneycomb, Q, Edge, HydroPrimitive, HydrologyNetwork, RasterData
 
 def getRidgeElevation(q: Q, hydrology: HydrologyNetwork, terrainSlope: RasterData, terrainSlopeRate: float) -> float:
     """Computes the elevation of a ridge/crest
@@ -240,7 +240,7 @@ def terminateRidgeAndStartShore(edgesLeft: typing.List[int], cellEdges: typing.L
         Q1: Q = None
 
         shoreSegment: typing.Tuple[int, int] = findIntersectingShoreSegment(getVertex0(edgesLeft[0], vor), getVertex1(edgesLeft[0], vor), shore)
-        intersection: Point = Math.edgeIntersection(getVertex0(edgesLeft[0], vor), getVertex1(edgesLeft[0], vor), shore[shoreSegment[0]], shore[shoreSegment[1]])
+        intersection: Point = edgeIntersection(getVertex0(edgesLeft[0], vor), getVertex1(edgesLeft[0], vor), shore[shoreSegment[0]], shore[shoreSegment[1]])
 
         Q1: Q = Q(intersection)
         shoreQs.append(Q1)
@@ -282,7 +282,7 @@ def processShoreSegment(currentSegment: typing.Tuple[int, int], edgesLeft: typin
 
     # does the current shore segment intersect with any of the edges that haven't been processed yet?
     for otherRidgeID in edgesLeft:
-        if Math.edgeIntersection(getVertex0(otherRidgeID, vor), getVertex1(otherRidgeID, vor), shore[currentSegment[0]], shore[currentSegment[1]]) is not None:
+        if edgeIntersection(getVertex0(otherRidgeID, vor), getVertex1(otherRidgeID, vor), shore[currentSegment[0]], shore[currentSegment[1]]) is not None:
             return terminateShoreAndStartRidge(otherRidgeID, currentSegment, edgesLeft, cellEdges, createdEdges, createdQs, shoreQs, vor, shore, hydrology)
     
     # This Q does not exist anywhere but in this cell, so it cannot have been created previously
@@ -334,7 +334,7 @@ def terminateShoreAndStartRidge(intersectingRidgeID: int, currentSegment: typing
     if intersectingRidgeID in createdEdges:
         Q1 = createdEdges[intersectingRidgeID].Q0
     else:
-        intersection: typing.Tuple[float, float] = Math.edgeIntersection(getVertex0(intersectingRidgeID, vor), getVertex1(intersectingRidgeID, vor), shore[currentSegment[0]], shore[currentSegment[1]])
+        intersection: typing.Tuple[float, float] = edgeIntersection(getVertex0(intersectingRidgeID, vor), getVertex1(intersectingRidgeID, vor), shore[currentSegment[0]], shore[currentSegment[1]])
         Q1: Q = Q(intersection)
         shoreQs.append(Q1)
 
@@ -380,7 +380,7 @@ def findIntersectingShoreSegment(p0: Point, p1: Point, shore: ShoreModel) -> typ
             if index >= len(shore):
                 return None
             otherIndex = index+1 if index+1 < len(shore) else 0
-            if Math.edgeIntersection(shore[index], shore[otherIndex], p0, p1) is not None:
+            if edgeIntersection(shore[index], shore[otherIndex], p0, p1) is not None:
                 return (index, otherIndex)
         power = power + 1
 
