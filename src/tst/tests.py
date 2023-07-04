@@ -14,17 +14,14 @@ from typing import Dict, List
 import math
 
 from lib.HydrologyFunctions import HydrologyParameters, isAcceptablePosition, selectNode, coastNormal, getLocalWatershed, getInheritedWatershed, getFlow
-# from lib.DataModel import ShoreModel, HydroPrimitive, HydrologyNetwork, Q, Edge, T, TerrainHoneycomb, Terrain
 from lib.ShoreModel import ShoreModel
 from lib.HydrologyNetwork import HydrologyNetwork, HydroPrimitive
 from lib.TerrainHoneycomb import TerrainHoneycomb, Q, Edge
 from lib.Terrain import Terrain, T
 from lib.Math import Point, edgeIntersection, segments_intersect_tuple
-
 from lib.TerrainPrimitiveFunctions import computePrimitiveElevation
 from lib.RiverInterpolationFunctions import computeRivers
 from lib.TerrainHoneycombFunctions import orderVertices, orderEdges, orderCreatedEdges, hasRiver, processRidge, getVertex0, getVertex1, ridgesToPoints, findIntersectingShoreSegment, initializeTerrainHoneycomb
-
 import lib.SaveFile
 
 from .testcodegenerator import getPredefinedObjects0
