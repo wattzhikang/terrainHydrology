@@ -14,7 +14,11 @@ from typing import Dict, List
 import math
 
 from lib.HydrologyFunctions import HydrologyParameters, isAcceptablePosition, selectNode, coastNormal, getLocalWatershed, getInheritedWatershed, getFlow
-from lib.DataModel import ShoreModel, HydroPrimitive, HydrologyNetwork, Q, Edge, T, TerrainHoneycomb, Terrain
+# from lib.DataModel import ShoreModel, HydroPrimitive, HydrologyNetwork, Q, Edge, T, TerrainHoneycomb, Terrain
+from lib.ShoreModel import ShoreModel
+from lib.HydrologyNetwork import HydrologyNetwork, HydroPrimitive
+from lib.TerrainHoneycomb import TerrainHoneycomb, Q, Edge
+from lib.Terrain import Terrain, T
 from lib.Math import Point, edgeIntersection, segments_intersect_tuple
 
 from lib.TerrainPrimitiveFunctions import computePrimitiveElevation
@@ -157,7 +161,7 @@ class ExtendedHydrologyFunctionTests(unittest.TestCase):
     
     def test_localWatershedTest(self) -> None:
         node = self.hydrology.node(14)
-        cellArea = self.cells.cellArea(node)
+        cellArea = self.cells.cellArea(node.id)
         self.assertEqual(getLocalWatershed(node, self.cells), cellArea)
 
     def test_inheritedWatershedTest(self) -> None:
@@ -1075,7 +1079,7 @@ class SaveFileHoneycombLoadTests(unittest.TestCase):
         hydrology = Mock()
 
         self.cells = TerrainHoneycomb()
-        self.cells.loadFromDB(2000, 2000, shore, hydrology, self.db)
+        self.cells.loadFromDB(2000, self.db)
 
     def test_load0(self) -> None:
         vertices = self.cells.cellVertices(0)
@@ -1159,7 +1163,7 @@ class SaveFileHoneycombSaveTests(unittest.TestCase):
 
     def test_save0(self) -> None:
         cells = TerrainHoneycomb()
-        cells.loadFromDB(2000, 2320.5, self.shore, self.hydrology, self.db)
+        cells.loadFromDB(2320.5, self.db)
 
         self.assertEqual(len(cells.qs), 78)
 

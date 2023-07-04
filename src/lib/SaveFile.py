@@ -1,7 +1,9 @@
 import os
 import sqlite3
 
-from lib.DataModel import ShoreModel, RasterData, HydrologyNetwork
+from lib.HydrologyNetwork import HydrologyNetwork
+from lib.ShoreModel import ShoreModel
+from lib.RasterData import RasterData
 
 currentVersion = 3
 

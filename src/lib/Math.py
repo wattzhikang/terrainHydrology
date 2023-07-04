@@ -1,5 +1,7 @@
 import numpy as np
 import math
+import skspatial.measurement as skm
+import shapely as shp
 
 import typing
 
@@ -38,66 +40,29 @@ def edgeIntersection(line0p0: Point, line0p1: Point, line1p0: Point, line1p1: Po
   y = y0 + ua * (y1-y0)
   return (x,y)
 
-def pointInConvexPolygon(point: typing.Tuple[float,float], vertices: np.ndarray, pivotPoint: typing.Tuple[float,float]) -> bool:
-  """Determine if a point is within a convex polygon
-
-  Algorithm derived from Wolfram: _An Efficient Test for a Point to Be in a Convex Polygon: http://demonstrations.wolfram.com/AnEfficientTestForAPointToBeInAConvexPolygon/
-
-  .. todo::
-    This function must be reworked. The fact that it requires a known pivot point is
-    a hack. There is certainly a better way to do this.
+def pointInPolygon(point: typing.Tuple[float,float], vertices: np.ndarray) -> bool:
+  """Determine if a point is within a polygon
 
   :param point: The point to test
   :param point: tuple[float,float]
   :param vertices: The polygon to test
   :type vertices: numpy.ndarray(2,n)
-  :param pivotPoint: A point that is known to be within the polygon
-  :type pivotPoint: tuple[float,float]
   :return: True if the point is within the polygon, False otherwise
   :rtype: bool
   """
-  previousSignPositive = None
+  polygon = shp.geometry.Polygon(vertices)
+  point = shp.geometry.Point(point)
+  return shp.contains(polygon, point)
 
-  # make the test point the new origin
-  vertices = np.subtract(vertices, point)
+def polygonArea(vertices: np.ndarray) -> float:
+  """Determine the area of a polygon
 
-  for i in range(len(vertices)):
-    v0, v1 = vertices[i], vertices[(i+1)%len(vertices)]
-    # a_i = X_{i+1} Y_{i} - X_{i} Y_{i+1}
-    ai = v1[0]*v0[1] - v0[0]*v1[1]
-    if previousSignPositive is None:
-      previousSignPositive = (ai > 0)
-      continue
-    if previousSignPositive != (ai > 0):
-      # ai must always have the same sign
-      return False
-  return True
-
-def convexPolygonArea(pivotPoint: typing.Tuple[float,float], vertices: np.ndarray) -> bool:
-  """Determine the area of a convex polygon
-
-  .. todo::
-    This function must be reworked. The fact that it requires a known pivot point is
-    a hack. There is certainly a better way to do this.
-
-  :param pivotPoint: A point that is known to be within the polygon
-  :type pivotPoint: tuple[float,float]
-  :param vertices: An array of points that defines the shape
-  :type vertices: np.ndarray[[float,float]]
+  :param vertices: The polygon to test
+  :type vertices: numpy.ndarray(2,n)
   :return: The area of the polygon
   :rtype: float
   """
-  vertices = np.subtract(vertices, pivotPoint)
-  vertices = list(vertices)
-  vertices.sort(key = lambda coord: math.atan2(coord[1],coord[0]))
-  vertices = np.array(vertices)
-
-  x = vertices[:,0]
-  y = vertices[:,1]
-
-  # This one-line implementation of Gauss's Shoelace Formula
-  # written by stackoverflow user Mahdi
-  return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+  return abs(skm.area_signed(vertices))
 
 # Borrowed , all of it
 def segments_distance(a: typing.Tuple[float,float], b: typing.Tuple[float,float], c: typing.Tuple[float,float], d: typing.Tuple[float,float]) -> float:

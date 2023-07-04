@@ -4,7 +4,7 @@ import argparse
 import shapefile
 from tqdm.std import trange
 
-from lib import SaveFile, DataModel
+from lib import ShoreModel, HydrologyNetwork, SaveFile, Terrain, TerrainHoneycomb, Math
 
 parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
@@ -54,12 +54,12 @@ with open(f'{outputFile}.prj', 'w') as prj:
 db = SaveFile.openDB(inputFile)
 resolution = SaveFile.getResolution(db)
 edgeLength = SaveFile.getEdgeLength(db)
-shore: DataModel.ShoreModel = DataModel.ShoreModel()
+shore: ShoreModel.ShoreModel = ShoreModel.ShoreModel()
 shore.loadFromDB(db)
-hydrology: DataModel.HydrologyNetwork = DataModel.HydrologyNetwork(db)
-cells: DataModel.TerrainHoneycomb = DataModel.TerrainHoneycomb()
-cells.loadFromDB(resolution, edgeLength, shore, hydrology, db)
-Ts: DataModel.Terrain = DataModel.Terrain()
+hydrology: HydrologyNetwork.HydrologyNetwork = HydrologyNetwork.HydrologyNetwork(db)
+cells: TerrainHoneycomb.TerrainHoneycomb = TerrainHoneycomb.TerrainHoneycomb()
+cells.loadFromDB(edgeLength, db)
+Ts: Terrain.Terrain = Terrain.Terrain()
 Ts.loadFromDB(db)
 
 realShape = shore.realShape

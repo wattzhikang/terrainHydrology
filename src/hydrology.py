@@ -13,7 +13,6 @@ import networkx as nx
 from scipy import interpolate
 import shapely.geometry as geom
 import numpy as np
-from shapely.geometry import asLineString
 from multiprocessing import Process, Pipe, Queue
 from tqdm import trange
 import math
@@ -24,7 +23,8 @@ import os.path
 import struct
 import traceback
 
-from lib import DataModel, HydrologyFunctions, Math, SaveFile, TerrainPrimitiveFunctions, RiverInterpolationFunctions, TerrainHoneycombFunctions, testcodegenerator
+from lib import RasterData, ShoreModel, HydrologyNetwork, HydrologyFunctions, SaveFile, TerrainPrimitiveFunctions, RiverInterpolationFunctions, Terrain, TerrainHoneycombFunctions
+from tst import testcodegenerator
 
 buildRiversExe = 'src/native-module/bin/buildRivers'
 computePrimitivesExe = 'src/native-module/bin/terrainPrimitives'
@@ -173,14 +173,14 @@ if args.accelerate:
 # Load input images
 
 if inputDomain[-4:] == '.shp':
-    shore = DataModel.ShoreModel(inputDomain)
+    shore = ShoreModel.ShoreModel(inputDomain)
 else:
     # if the input is not a shapefile, complain and exit
     print('Input domain must be a shapefile. Use img-to-shp.py to convert an image to a shapefile.')
     exit()
 
-terrainSlope = DataModel.RasterData(inputTerrain, resolution)
-riverSlope = DataModel.RasterData(inputRiverSlope, resolution)
+terrainSlope = RasterData.RasterData(inputTerrain, resolution)
+riverSlope = RasterData.RasterData(inputRiverSlope, resolution)
 
 # Initialize the save file
 db = SaveFile.createDB(outputFile, resolution, edgeLength, args.longitude, args.latitude)
@@ -192,7 +192,7 @@ SaveFile.setShoreBoundaries(db, shore)
 
 try:
 
-    hydrology = DataModel.HydrologyNetwork()
+    hydrology = HydrologyNetwork.HydrologyNetwork()
 
     # generate first node
     firstIdx = random.randint(0,len(shore)-1)
@@ -257,7 +257,7 @@ try:
 
         # Recreate hydrology with data from the native module
         print('\tReading data...')
-        hydrology = DataModel.HydrologyNetwork(db)
+        hydrology = HydrologyNetwork.HydrologyNetwork(db)
 
     print(f'\tGenerated {len(hydrology)} nodes in {(end-start).total_seconds()} seconds')
     print(f'\tRate: {len(hydrology)/(end-start).total_seconds()} node/sec')
@@ -407,7 +407,7 @@ try:
         assert struct.unpack('B',readByte)[0] == 0x21
 
         # Recreate the terrain primitives with data from the native module
-        Ts = DataModel.Terrain()
+        Ts = Terrain.Terrain()
         Ts.loadFromDB(db)
 
 except Exception as e:
