@@ -63,12 +63,11 @@ with open(f'{outputFile}.prj', 'w') as prj:
 
 # Read the data model
 db = SaveFile.openDB(inputFile)
-edgeLength = SaveFile.getEdgeLength(db)
 shore: ShoreModel.ShoreModel = ShoreModel.ShoreModel()
 shore.loadFromDB(db)
 hydrology: HydrologyNetwork.HydrologyNetwork = HydrologyNetwork.HydrologyNetwork(db)
 cells: TerrainHoneycomb.TerrainHoneycomb = TerrainHoneycomb.TerrainHoneycomb()
-cells.loadFromDB(edgeLength, db)
+cells.loadFromDB(db)
 Ts: Terrain.Terrain = Terrain.Terrain()
 Ts.loadFromDB(db)
 realShape = shore.realShape

@@ -72,17 +72,13 @@ class TerrainHoneycomb:
     Note that constructor does not construct a terrain honeycomb. That is done
     by :py:func:`TerrainHoneycombFunctions.initializeTerrainHoneycomb`.
 
-    :param edgeLength: The edge length in the simulation
-    :type edgeLength: float
     :param binaryFile: A binary file
     :type binaryFile: IO
 
     """
-    def loadFromDB(self, edgeLength, db: sqlite3.Connection):
+    def loadFromDB(self, db: sqlite3.Connection):
         """Loads the terrain honeycomb from a database
 
-        :param edgeLength: The edge length in the simulation
-        :type edgeLength: float
         :param db: The database connection
         :type db: sqlite3.Connection
         """
