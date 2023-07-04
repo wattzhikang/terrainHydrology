@@ -4,7 +4,17 @@ import argparse
 import shapefile
 from tqdm.std import trange
 
-from lib import ShoreModel, HydrologyNetwork, SaveFile, Terrain, TerrainHoneycomb, Math
+from lib.HydrologyFunctions import HydrologyParameters, isAcceptablePosition, selectNode, coastNormal, getLocalWatershed, getInheritedWatershed, getFlow
+import lib.ShoreModel as ShoreModel
+import lib.HydrologyNetwork as HydrologyNetwork
+import lib.TerrainHoneycomb as TerrainHoneycomb
+import lib.Terrain as Terrain
+import lib.TerrainHydrology as TerrainHydrology
+import lib.Math as Math
+from lib.TerrainPrimitiveFunctions import computePrimitiveElevation
+from lib.RiverInterpolationFunctions import computeRivers
+from lib.TerrainHoneycombFunctions import orderVertices, orderEdges, orderCreatedEdges, hasRiver, processRidge, getVertex0, getVertex1, ridgesToPoints, findIntersectingShoreSegment, initializeTerrainHoneycomb
+import lib.SaveFile as SaveFile
 
 parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
