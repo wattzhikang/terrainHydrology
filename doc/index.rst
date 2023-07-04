@@ -15,12 +15,18 @@ These pages document the data structures used in the terrainHydrology project.
 .. toctree::
    :maxdepth: 3
 
-   ./data-model
+   ./terrain-hydrology
+   ./raster-data
+   ./shore-model
+   ./hydrology-network
    ./hydrology-functions
    ./river-interpolation-functions
+   ./terrain-honeycomb
    ./terrainhoneycomb-functions
+   ./terrain
    ./terrainprimitive-functions
    ./math
+   ./save-file
    ./tests
 
 Indices and tables

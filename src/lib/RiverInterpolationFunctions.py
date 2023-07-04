@@ -1,8 +1,9 @@
 import numpy as np
 from scipy import interpolate
-from shapely.geometry import asLineString
+from shapely.geometry import LineString
 
-from .DataModel import HydroPrimitive, HydrologyNetwork, TerrainHoneycomb
+from lib.HydrologyNetwork import HydroPrimitive, HydrologyNetwork
+from lib.TerrainHoneycomb import TerrainHoneycomb
 
 def computeRivers(node: HydroPrimitive, hydrology: HydrologyNetwork, cells: TerrainHoneycomb):
     """Computes the path of all the rivers that flow through the node.
@@ -81,7 +82,7 @@ def computeRivers(node: HydroPrimitive, hydrology: HydrologyNetwork, cells: Terr
         for i in range(len(out[0])): # loops through each coordinate created in interpolation
             lstr.append((out[0][i],out[1][i],int(out[2][i])))
             dbg.append(int(out[2][i]))
-        line = asLineString(lstr)
+        line = LineString(lstr)
         
         for p in path: # for each node in the path to this particular leaf
             # I'm pretty sure this loop ensures that

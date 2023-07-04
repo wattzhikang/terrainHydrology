@@ -6,7 +6,10 @@ from tqdm import trange
 
 from .poisson import PoissonGenerator
 
-from .DataModel import T, ShoreModel, HydrologyNetwork, TerrainHoneycomb, Terrain
+from lib.ShoreModel import ShoreModel
+from lib.HydrologyNetwork import HydrologyNetwork
+from lib.TerrainHoneycomb import TerrainHoneycomb
+from lib.Terrain import Terrain, T
 from .Math import point_segment_distance_is_endpoint, distance
 
 def initializeTerrain(hydrology: HydrologyNetwork, cells: TerrainHoneycomb, num_points: int) -> Terrain:

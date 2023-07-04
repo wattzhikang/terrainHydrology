@@ -2,6 +2,8 @@
 Terrain
 *******
 
-.. autoclass:: DataModel.Terrain
-    :members:
-    :undoc-members:
+.. toctree::
+    :maxdepth: 2
+
+    ./terrain-class
+    ./t

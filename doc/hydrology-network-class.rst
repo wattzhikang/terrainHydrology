@@ -1,8 +1,8 @@
-****
-Edge
-****
+****************
+HydrologyNetwork
+****************
 
-.. autoclass:: lib.TerrainHoneycomb.Edge
+.. autoclass:: lib.HydrologyNetwork.HydrologyNetwork
     :members:
     :special-members:
     :exclude-members: __dict__, __init__, __module__, __weakref__

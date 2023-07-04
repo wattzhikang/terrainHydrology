@@ -11,7 +11,17 @@ from rasterio.transform import Affine
 import time
 import math
 
-from lib import DataModel, SaveFile, Math
+from lib.HydrologyFunctions import HydrologyParameters, isAcceptablePosition, selectNode, coastNormal, getLocalWatershed, getInheritedWatershed, getFlow
+import lib.ShoreModel as ShoreModel
+import lib.HydrologyNetwork as HydrologyNetwork
+import lib.TerrainHoneycomb as TerrainHoneycomb
+import lib.Terrain as Terrain
+import lib.TerrainHydrology as TerrainHydrology
+import lib.Math as Math
+from lib.TerrainPrimitiveFunctions import computePrimitiveElevation
+from lib.RiverInterpolationFunctions import computeRivers
+from lib.TerrainHoneycombFunctions import orderVertices, orderEdges, orderCreatedEdges, hasRiver, processRidge, getVertex0, getVertex1, ridgesToPoints, findIntersectingShoreSegment, initializeTerrainHoneycomb
+import lib.SaveFile as SaveFile
 
 parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
@@ -80,15 +90,17 @@ longitude = float(args.longitude)
 
 # Read the data model
 db = SaveFile.openDB(inputFile)
-resolution = SaveFile.getResolution(db)
 edgeLength = SaveFile.getEdgeLength(db)
-shore: DataModel.ShoreModel = DataModel.ShoreModel()
+shore: ShoreModel.ShoreModel = ShoreModel.ShoreModel()
 shore.loadFromDB(db)
-hydrology: DataModel.HydrologyNetwork = DataModel.HydrologyNetwork(db)
-cells: DataModel.TerrainHoneycomb = DataModel.TerrainHoneycomb()
-cells.loadFromDB(resolution, edgeLength, shore, hydrology, db)
-Ts: DataModel.Terrain = DataModel.Terrain()
+hydrology: HydrologyNetwork.HydrologyNetwork = HydrologyNetwork.HydrologyNetwork(db)
+cells: TerrainHoneycomb.TerrainHoneycomb = TerrainHoneycomb.TerrainHoneycomb()
+cells.loadFromDB(edgeLength, db)
+Ts: Terrain.Terrain = Terrain.Terrain()
 Ts.loadFromDB(db)
+terrainSystem = TerrainHydrology.TerrainHydrology(edgeLength)
+terrainSystem.hydrology = hydrology
+terrainSystem.cells = cells
 
 radius = edgeLength / 3
 rwidth = edgeLength / 2
@@ -152,7 +164,7 @@ def TerrainFunction(point: typing.Tuple[float,float]) -> float:
     wi=wt_ # IDK why he converts these here
     hi=ht_
     
-    nodeID = cells.nodeID(point)
+    nodeID = terrainSystem.nodeOfPoint(point)
     if nodeID is None:
         return hi
     node = hydrology.node(nodeID)
@@ -197,7 +209,7 @@ octaves = 6
 persistence = 0.5
 lacunarity = 2.0
 # Height of a terrain primitive
-def ht(p: typing.Tuple[float, float], t: DataModel.T) -> float:
+def ht(p: typing.Tuple[float, float], t: Terrain.T) -> float:
     return t.elevation# +pnoise2(p[0]/scale,p[1]/scale,octaves=octaves,persistence=persistence,lacunarity=lacunarity,repeatx=shore.shape[0],repeaty=shore.shape[1],base=0)*10
 
 # Height of a river primitive?

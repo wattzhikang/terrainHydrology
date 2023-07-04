@@ -1,10 +1,8 @@
 ****************
-TerrainHoneycomb
+TerrainHydrology
 ****************
 
 .. toctree::
     :maxdepth: 2
 
-    ./terrain-honeycomb-class
-    ./q
-    ./edge
+    ./terrain-hydrology-class

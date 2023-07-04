@@ -3,8 +3,11 @@ import typing
 import numpy as np
 from scipy.spatial import Voronoi
 
-from .Math import edgeIntersection
-from .DataModel import Point, ShoreModel, TerrainHoneycomb, Q, Edge, HydroPrimitive, HydrologyNetwork, RasterData
+from .Math import edgeIntersection, Point
+from .RasterData import RasterData
+from .ShoreModel import ShoreModel
+from .TerrainHoneycomb import TerrainHoneycomb, Q, Edge
+from .HydrologyNetwork import HydrologyNetwork, HydroPrimitive
 
 def getRidgeElevation(q: Q, hydrology: HydrologyNetwork, terrainSlope: RasterData, terrainSlopeRate: float) -> float:
     """Computes the elevation of a ridge/crest

@@ -4,8 +4,17 @@ import argparse
 import shapefile
 from tqdm.std import trange
 
-from lib import DataModel
-from lib import SaveFile
+from lib.HydrologyFunctions import HydrologyParameters, isAcceptablePosition, selectNode, coastNormal, getLocalWatershed, getInheritedWatershed, getFlow
+import lib.ShoreModel as ShoreModel
+import lib.HydrologyNetwork as HydrologyNetwork
+import lib.TerrainHoneycomb as TerrainHoneycomb
+import lib.Terrain as Terrain
+import lib.TerrainHydrology as TerrainHydrology
+import lib.Math as Math
+from lib.TerrainPrimitiveFunctions import computePrimitiveElevation
+from lib.RiverInterpolationFunctions import computeRivers
+from lib.TerrainHoneycombFunctions import orderVertices, orderEdges, orderCreatedEdges, hasRiver, processRidge, getVertex0, getVertex1, ridgesToPoints, findIntersectingShoreSegment, initializeTerrainHoneycomb
+import lib.SaveFile as SaveFile
 
 parser = argparse.ArgumentParser(
     description='Implementation of Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
@@ -53,16 +62,13 @@ with open(f'{outputFile}.prj', 'w') as prj:
 
 # Read the data model
 db = SaveFile.openDB(inputFile)
-resolution = SaveFile.getResolution(db)
-edgeLength = SaveFile.getEdgeLength(db)
-shore: DataModel.ShoreModel = DataModel.ShoreModel()
+shore: ShoreModel.ShoreModel = ShoreModel.ShoreModel()
 shore.loadFromDB(db)
-hydrology: DataModel.HydrologyNetwork = DataModel.HydrologyNetwork(db)
-cells: DataModel.TerrainHoneycomb = DataModel.TerrainHoneycomb()
-cells.loadFromDB(resolution, edgeLength, shore, hydrology, db)
-Ts: DataModel.Terrain = DataModel.Terrain()
+hydrology: HydrologyNetwork.HydrologyNetwork = HydrologyNetwork.HydrologyNetwork(db)
+cells: TerrainHoneycomb.TerrainHoneycomb = TerrainHoneycomb.TerrainHoneycomb()
+cells.loadFromDB(db)
+Ts: Terrain.Terrain = Terrain.Terrain()
 Ts.loadFromDB(db)
-
 realShape = shore.realShape
 
 with shapefile.Writer(outputFile, shapeType=3) as w:

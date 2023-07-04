@@ -6,7 +6,8 @@ from .Math import point_segment_distance
 
 # imports and definitions for type hinting
 import typing
-from .DataModel import HydroPrimitive, HydrologyNetwork, TerrainHoneycomb
+from lib.HydrologyNetwork import HydroPrimitive, HydrologyNetwork
+from lib.TerrainHoneycomb import TerrainHoneycomb
 
 def selectNode(candidate_nodes: typing.List[HydroPrimitive] , zeta: float) -> HydroPrimitive:
     """Given a list of candidate nodes, this function selects the next node to expand
@@ -338,7 +339,7 @@ def getLocalWatershed(node: HydroPrimitive, cells: TerrainHoneycomb) -> float:
     :return: The area of the local watershed in square meters
     :rtype: float
     """
-    return cells.cellArea(node)
+    return cells.cellArea(node.id)
 
 def getInheritedWatershed(node: HydroPrimitive, hydrology: HydrologyNetwork) -> float:
     """Gets the total area of the watershed.
