@@ -2,8 +2,8 @@
 TerrainHoneycombFunctions
 *************************
 
-This module contains the functions that create and use the TerrainHoneycomb
+This module contains the functions that create and use the TerrainHoneycomb, the most important of which is `initializeTerrainHoneycomb()`.
 
-.. automodule:: TerrainHoneycombFunctions
+.. automodule:: lib.TerrainHoneycombFunctions
    :members:
    :undoc-members:

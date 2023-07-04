@@ -2,6 +2,6 @@
 HydroPrimitive
 **************
 
-.. autoclass:: DataModel.HydroPrimitive
+.. autoclass:: lib.HydrologyNetwork.HydroPrimitive
     :members:
     :undoc-members:

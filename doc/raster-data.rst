@@ -2,8 +2,7 @@
 RasterData
 **********
 
-.. autoclass:: DataModel.RasterData
-    :members:
-    :special-members:
-    :exclude-members: __dict__, __init__, __module__, __weakref__
-    :undoc-members:
+.. toctree::
+    :maxdepth: 2
+
+    ./raster-data-class

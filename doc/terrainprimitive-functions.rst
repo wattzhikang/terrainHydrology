@@ -4,6 +4,6 @@ TerrainPrimitiveFunctions
 
 This module contains the functions that create and use the TerrainHoneycomb
 
-.. automodule:: TerrainPrimitiveFunctions
+.. automodule:: lib.TerrainPrimitiveFunctions
    :members:
    :undoc-members:

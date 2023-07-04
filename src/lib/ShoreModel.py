@@ -103,11 +103,6 @@ class ShoreModel:
     def saveToDB(self, db: sqlite3.Connection) -> None:
         """Writes the shoreline to a database
 
-        NOTE: No matter the provenance of a shoreline, whether from an image
-        or shapefile, it will be written to the database as a list of points
-        in the project coordinate system. So regardless of the source, a
-        shoreline should be loaded from the database as a Shapefile shoreline.
-
         :param db: The database to write to
         :type db: sqlite3.Connection
         """

@@ -18,7 +18,7 @@ from lib.ShoreModel import ShoreModel
 from lib.HydrologyNetwork import HydrologyNetwork, HydroPrimitive
 from lib.TerrainHoneycomb import TerrainHoneycomb, Q, Edge
 from lib.Terrain import Terrain, T
-from lib.Math import Point, edgeIntersection, segments_intersect_tuple
+from lib.Math import Point, edgeIntersection, segments_intersect_tuple, polygonArea
 from lib.TerrainPrimitiveFunctions import computePrimitiveElevation
 from lib.RiverInterpolationFunctions import computeRivers
 from lib.TerrainHoneycombFunctions import orderVertices, orderEdges, orderCreatedEdges, hasRiver, processRidge, getVertex0, getVertex1, ridgesToPoints, findIntersectingShoreSegment, initializeTerrainHoneycomb
@@ -194,6 +194,16 @@ class MathTests(unittest.TestCase):
 
         self.assertAlmostEqual(intersection[0], 74.11, delta=1.0)
         self.assertAlmostEqual(intersection[1], -79.72, delta=1.0)
+
+    def test_polygon_area_test_0(self) -> None:
+        area = polygonArea([(0,0), (10,0), (10,10), (0,10)])
+
+        self.assertEqual(area, 100)
+
+    def test_polygon_area_test_1(self) -> None:
+        area = polygonArea([(10,20), (0, 30), (-10, 20), (-1, 20), (-1, 10), (-10, 10), (0, 5), (10, 10), (1, 10), (1, 20)])
+
+        self.assertEqual(area, 170)
 
     def tearDown(self) -> None:
         # os.remove('imageFile.png')
@@ -1076,7 +1086,7 @@ class SaveFileHoneycombLoadTests(unittest.TestCase):
         hydrology = Mock()
 
         self.cells = TerrainHoneycomb()
-        self.cells.loadFromDB(2000, self.db)
+        self.cells.loadFromDB(self.db)
 
     def test_load0(self) -> None:
         vertices = self.cells.cellVertices(0)
@@ -1160,7 +1170,7 @@ class SaveFileHoneycombSaveTests(unittest.TestCase):
 
     def test_save0(self) -> None:
         cells = TerrainHoneycomb()
-        cells.loadFromDB(2320.5, self.db)
+        cells.loadFromDB(self.db)
 
         self.assertEqual(len(cells.qs), 78)
 

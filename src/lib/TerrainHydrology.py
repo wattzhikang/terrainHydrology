@@ -3,6 +3,11 @@ from .HydrologyNetwork import HydrologyNetwork
 from .TerrainHoneycomb import TerrainHoneycomb
 
 class TerrainHydrology:
+    """This class is intended to tie together the layers of a terrain model.
+    
+    To use this class, call the constructor and then set the layers as needed.
+
+    """
     def __init__(self, edgeLength: float) -> None:
         self.edgeLength = edgeLength
 

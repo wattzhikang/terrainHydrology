@@ -2,6 +2,6 @@
 T
 **
 
-.. autoclass:: DataModel.T
+.. autoclass:: lib.Terrain.T
     :members:
     :undoc-members:

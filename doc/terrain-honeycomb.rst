@@ -2,6 +2,9 @@
 TerrainHoneycomb
 ****************
 
-.. autoclass:: DataModel.TerrainHoneycomb
-    :members:
-    :undoc-members:
+.. toctree::
+    :maxdepth: 2
+
+    ./terrain-honeycomb-class
+    ./q
+    ./edge
