@@ -206,10 +206,6 @@ def getPredefinedObjects0():
     hydrology = HydrologyNetwork()
     cells = TerrainHoneycomb()
 
-    cells.shore = shore
-    cells.resolution = resolution
-    
-
     hydrology.addNode((-7768.799999999999, 2059.2), 0, 2, contourIndex=44) # ID: 0
     hydrology.addNode((-8049.599999999999, -2246.3999999999996), 0, 1, contourIndex=90) # ID: 1
     hydrology.addNode((-5054.4, -7394.4), 0, 1, contourIndex=145) # ID: 2

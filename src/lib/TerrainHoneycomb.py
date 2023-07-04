@@ -72,25 +72,15 @@ class TerrainHoneycomb:
     Note that constructor does not construct a terrain honeycomb. That is done
     by :py:func:`TerrainHoneycombFunctions.initializeTerrainHoneycomb`.
 
-    :param resolution: The resolution of the underlying rasters in meters per pixel
-    :type resolution: float
     :param edgeLength: The edge length in the simulation
     :type edgeLength: float
     :param binaryFile: A binary file
     :type binaryFile: IO
 
-    .. note::
-        If passing in a binary file, you must seek to the appropriate location.
-
-    .. note::
-       ``resolution`` should be the same that was passed to the ShoreModel.
-
     """
     def loadFromDB(self, edgeLength, db: sqlite3.Connection):
         """Loads the terrain honeycomb from a database
 
-        :param resolution: The resolution of the underlying rasters in meters per pixel
-        :type resolution: float
         :param edgeLength: The edge length in the simulation
         :type edgeLength: float
         :param db: The database connection

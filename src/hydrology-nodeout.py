@@ -53,7 +53,6 @@ with open(f'{outputFile}.prj', 'w') as prj:
 
 # Read the data model
 db = SaveFile.openDB(inputFile)
-resolution = SaveFile.getResolution(db)
 edgeLength = SaveFile.getEdgeLength(db)
 shore: ShoreModel.ShoreModel = ShoreModel.ShoreModel()
 shore.loadFromDB(db)
