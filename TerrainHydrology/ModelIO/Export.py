@@ -1,11 +1,13 @@
 import shapefile
 from tqdm import trange
+import typing
+import sys
 
 from TerrainHydrology.DataModel import ShoreModel, HydrologyNetwork, TerrainHoneycomb, Terrain
 
 import TerrainHydrology.ModelIO.SaveFile as SaveFile
 
-def writeNodeShapefile(progressBar: bool, inputFile: str, lat: float, lon: float, outputFile: str) -> None:
+def writeNodeShapefile(inputFile: str, lat: float, lon: float, outputFile: str, progressOut: typing.IO=sys.stderr) -> None:
     ## Create the .prj file to be read by GIS software
     with open(f'{outputFile}.prj', 'w') as prj:
         # WKT string with latitude and longitude built in
@@ -35,7 +37,7 @@ def writeNodeShapefile(progressBar: bool, inputFile: str, lat: float, lon: float
         w.field('flow', 'F')
 
         # add every node
-        for nidx in trange(len(hydrology), disable=(not progressBar)):
+        for nidx in trange(len(hydrology), file=progressOut):
             node = hydrology.node(nidx)
 
             if node.parent is not None:

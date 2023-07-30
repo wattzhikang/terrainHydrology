@@ -5,7 +5,7 @@ import argparse
 from TerrainHydrology.ModelIO import Export
 
 def export(args: argparse.Namespace) -> None:
-    Export.writeNodeShapefile(True, args.inputFile, args.latitude, args.longitude, args.nodeOutput)
+    Export.writeNodeShapefile(args.inputFile, args.latitude, args.longitude, args.nodeOutput)
 
 parser = argparse.ArgumentParser(
     description='Terrain system based on Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
