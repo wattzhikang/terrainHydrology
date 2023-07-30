@@ -6,7 +6,7 @@ from scipy.spatial import cKDTree
 
 from typing import List
 
-from .Math import Point
+from TerrainHydrology.Utilities.Math import Point
 
 class ShoreModel:
     """This class represents the shoreline of the land area.

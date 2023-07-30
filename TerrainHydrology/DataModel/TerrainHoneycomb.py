@@ -2,7 +2,7 @@ import sqlite3
 
 from typing import Tuple, List, Dict
 
-from .Math import Point, polygonArea, pointInPolygon
+from TerrainHydrology.Utilities.Math import Point, polygonArea, pointInPolygon
 
 class Q:
     """Represents a ridge point

@@ -6,11 +6,11 @@ from tqdm import trange
 
 from .poisson import PoissonGenerator
 
-from lib.ShoreModel import ShoreModel
-from lib.HydrologyNetwork import HydrologyNetwork
-from lib.TerrainHoneycomb import TerrainHoneycomb
-from lib.Terrain import Terrain, T
-from .Math import point_segment_distance_is_endpoint, distance
+from DataModel.ShoreModel import ShoreModel
+from DataModel.HydrologyNetwork import HydrologyNetwork
+from DataModel.TerrainHoneycomb import TerrainHoneycomb
+from DataModel.Terrain import Terrain, T
+from Utilities.Math import point_segment_distance_is_endpoint, distance
 
 def initializeTerrain(hydrology: HydrologyNetwork, cells: TerrainHoneycomb, num_points: int) -> Terrain:
     """Generates the terrain primitives for the terrain and initializes the Terrain object
