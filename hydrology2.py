@@ -70,7 +70,7 @@ parser_export.add_argument(
     '--output-edges',
     '-oe',
     metavar='edges',
-    help='Name for the shapefile that will contain the cell edges. Note that shapefiles are composed of multiple files. Thus, if the name of the output is "nodes", the files "nodes.shp", "nodes.shx", "nodes.dbf", "nodes.prj" will be created.',
+    help='Name for the shapefile that will contain the cell ridges. (This does not include the shoreline, nor edges that rivers flow through.) Note that shapefiles are composed of multiple files. Thus, if the name of the output is "nodes", the files "nodes.shp", "nodes.shx", "nodes.dbf", "nodes.prj" will be created.',
     type=str,
     dest='edgeOutput',
     required=False
