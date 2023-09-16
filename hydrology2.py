@@ -9,6 +9,8 @@ def export(args: argparse.Namespace) -> None:
         Export.writeNodeShapefile(args.inputFile, args.latitude, args.longitude, args.nodeOutput)
     if args.terrainOutput is not None:
         Export.writeTerrainPrimitiveShapefile(args.inputFile, args.latitude, args.longitude, args.terrainOutput)
+    if args.edgeOutput is not None:
+        Export.writeEdgeShapefile(args.inputFile, args.latitude, args.longitude, args.edgeOutput)
 
 parser = argparse.ArgumentParser(
     description='Terrain system based on Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
@@ -62,6 +64,15 @@ parser_export.add_argument(
     help='Name for the shapefile that will contain the terrian primitives. Note that shapefiles are composed of multiple files. Thus, if the name of the output is "nodes", the files "nodes.shp", "nodes.shx", "nodes.dbf", "nodes.prj" will be created.',
     type=str,
     dest='terrainOutput',
+    required=False
+)
+parser_export.add_argument(
+    '--output-edges',
+    '-oe',
+    metavar='edges',
+    help='Name for the shapefile that will contain the cell ridges. (This does not include the shoreline, nor edges that rivers flow through.) Note that shapefiles are composed of multiple files. Thus, if the name of the output is "nodes", the files "nodes.shp", "nodes.shx", "nodes.dbf", "nodes.prj" will be created.',
+    type=str,
+    dest='edgeOutput',
     required=False
 )
 parser_export.set_defaults(func=export)
