@@ -133,3 +133,36 @@ def writeEdgeShapefile(inputFile: str, lat: float, lon: float, outputFile: str, 
                 w.line([list(coords)])
 
         w.close()
+
+def writeDownstreamEdgeShapefile(inputFile: str, lat: float, lon: float, outputFile: str, progressOut: typing.IO=sys.stderr) -> None:
+    ## Create the .prj file to be read by GIS software
+    writePrjFile(lat, lon, outputFile)
+
+    # Read the data model
+    db = SaveFile.openDB(inputFile)
+    shore: ShoreModel.ShoreModel = ShoreModel.ShoreModel()
+    shore.loadFromDB(db)
+    hydrology: HydrologyNetwork.HydrologyNetwork = HydrologyNetwork.HydrologyNetwork(db)
+    cells: TerrainHoneycomb.TerrainHoneycomb = TerrainHoneycomb.TerrainHoneycomb()
+    cells.loadFromDB(db)
+    Ts: Terrain.Terrain = Terrain.Terrain()
+    Ts.loadFromDB(db)
+
+    realShape = shore.realShape
+
+    with shapefile.Writer(outputFile, shapeType=3) as w:
+        w.field('id', 'L')
+
+        for edge in cells.cellsDownstreamRidges.values():
+            coords = [ ]
+
+            coords.append(edge.Q0.position)
+            coords.append(edge.Q1.position)
+            
+            coords = [(p[0],p[1]) for p in coords]
+
+            w.record(True)
+
+            w.line([list(coords)])
+
+        w.close()
