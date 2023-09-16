@@ -98,3 +98,38 @@ def writeTerrainPrimitiveShapefile(inputFile: str, lat: float, lon: float, outpu
             )
 
         w.close()
+
+def writeEdgeShapefile(inputFile: str, lat: float, lon: float, outputFile: str, progressOut: typing.IO=sys.stderr) -> None:
+    ## Create the .prj file to be read by GIS software
+    writePrjFile(lat, lon, outputFile)
+
+    # Read the data model
+    db = SaveFile.openDB(inputFile)
+    shore: ShoreModel.ShoreModel = ShoreModel.ShoreModel()
+    shore.loadFromDB(db)
+    hydrology: HydrologyNetwork.HydrologyNetwork = HydrologyNetwork.HydrologyNetwork(db)
+    cells: TerrainHoneycomb.TerrainHoneycomb = TerrainHoneycomb.TerrainHoneycomb()
+    cells.loadFromDB(db)
+    Ts: Terrain.Terrain = Terrain.Terrain()
+    Ts.loadFromDB(db)
+
+    with shapefile.Writer(outputFile, shapeType=3) as w:
+        w.field('id', 'L')
+
+        for cell in hydrology.allNodes():
+
+            for ridge in cells.cellRidges(cell.id):
+                coords = [ ]
+
+                # print(cells.cellRidges(cell.id))
+
+                coords.append(ridge.Q0.position)
+                coords.append(ridge.Q1.position)
+                
+                coords = [(p[0],p[1]) for p in coords]
+
+                w.record(True)
+
+                w.line([list(coords)])
+
+        w.close()
