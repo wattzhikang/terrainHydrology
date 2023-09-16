@@ -13,6 +13,8 @@ def export(args: argparse.Namespace) -> None:
         Export.writeEdgeShapefile(args.inputFile, args.latitude, args.longitude, args.edgeOutput)
     if args.downstreamEdgeOutput is not None:
         Export.writeDownstreamEdgeShapefile(args.inputFile, args.latitude, args.longitude, args.downstreamEdgeOutput)
+    if args.riverOutput is not None:
+        Export.writeRiverShapefile(args.inputFile, args.latitude, args.longitude, args.riverOutput)
 
 parser = argparse.ArgumentParser(
     description='Terrain system based on Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
@@ -84,6 +86,15 @@ parser_export.add_argument(
     help='Name for the shapefile that will contain the downstream edges. Note that shapefiles are composed of multiple files. Thus, if the name of the output is "nodes", the files "nodes.shp", "nodes.shx", "nodes.dbf", "nodes.prj" will be created.',
     type=str,
     dest='downstreamEdgeOutput',
+    required=False
+)
+parser_export.add_argument(
+    '--output-rivers',
+    '-or',
+    metavar='rivers',
+    help='Name for the shapefile that will contain the river paths. Note that shapefiles are composed of multiple files. Thus, if the name of the output is "nodes", the files "nodes.shp", "nodes.shx", "nodes.dbf", "nodes.prj" will be created.',
+    type=str,
+    dest='riverOutput',
     required=False
 )
 parser_export.set_defaults(func=export)

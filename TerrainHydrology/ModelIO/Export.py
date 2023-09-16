@@ -166,3 +166,53 @@ def writeDownstreamEdgeShapefile(inputFile: str, lat: float, lon: float, outputF
             w.line([list(coords)])
 
         w.close()
+
+def writeRiverShapefile(inputFile: str, lat: float, lon: float, outputFile: str, progressOut: typing.IO=sys.stderr) -> None:
+    ## Create the .prj file to be read by GIS software
+    writePrjFile(lat, lon, outputFile)
+
+    # Read the data model
+    db = SaveFile.openDB(inputFile)
+    shore: ShoreModel.ShoreModel = ShoreModel.ShoreModel()
+    shore.loadFromDB(db)
+    hydrology: HydrologyNetwork.HydrologyNetwork = HydrologyNetwork.HydrologyNetwork(db)
+    cells: TerrainHoneycomb.TerrainHoneycomb = TerrainHoneycomb.TerrainHoneycomb()
+    cells.loadFromDB(db)
+    Ts: Terrain.Terrain = Terrain.Terrain()
+    Ts.loadFromDB(db)
+    realShape = shore.realShape
+
+    with shapefile.Writer(outputFile, shapeType=3) as w:
+        # The only relevant field for rivers
+        w.field('flow', 'F')
+
+        # This loop adds rivers in the same way that they were created
+        #for node in hydrology.allMouthNodes():
+        for nidx in trange(len(hydrology), file=progressOut):
+            node = hydrology.node(nidx)
+
+            leaves = hydrology.allLeaves(node.id)
+            for leafNode in leaves:
+                # Path from the leaf to the sea
+                path = hydrology.pathToNode(node.id, leafNode.id)
+                path.reverse()
+
+                # The flow of the river is the flow at the base of
+                # its path to the sea, unless this stretch of the
+                # river doesn't flow all the way to the sea
+                riverFlow = path[len(path)-1].flow
+                for ni in range(1,len(path)):
+                    upstreamFlow = max([n.flow for n in hydrology.upstream(path[ni].id)])
+                    # If this river is merely a tributary to a larger
+                    # stream, terminate the course and record the
+                    # flow at that point
+                    if upstreamFlow > path[ni-1].flow:
+                        riverFlow = path[ni].flow
+                        break
+                w.record(riverFlow)
+
+                coords = list(leafNode.rivers[0].coords)
+                # Transform the coordinates
+                coords = [(p[0],p[1]) for p in coords]
+                w.line([list(coords)])
+        w.close()
