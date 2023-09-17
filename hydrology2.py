@@ -3,6 +3,7 @@
 import argparse
 
 from TerrainHydrology.ModelIO import Export, Render
+from TerrainHydrology.Utilities import BitmapToShapefile
 
 def export(args: argparse.Namespace) -> None:
     if args.nodeOutput is not None:
@@ -18,6 +19,9 @@ def export(args: argparse.Namespace) -> None:
 
 def render(args: argparse.Namespace) -> None:
     Render.renderDEM(args.inputFile, args.latitude, args.longitude, args.outputResolution, args.num_procs, args.outputDir, args.extremeMemory)
+
+def img_to_shp(args: argparse.Namespace) -> None:
+    BitmapToShapefile.img_to_shp(args.inputImage, args.latitude, args.longitude, args.resolution, args.outputFile)
 
 parser = argparse.ArgumentParser(
     description='Terrain system based on Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
@@ -161,6 +165,50 @@ parser_render.add_argument(
     required=False
 )
 parser_render.set_defaults(func=render)
+
+parser_img_to_shp = subparsers.add_parser('img-to-shp', help='img-to-shp help')
+parser_img_to_shp.add_argument(
+    '-i',
+    '--input',
+    help='The input image file',
+    dest='inputImage',
+    metavar='shoreline.png',
+    required=True
+)
+parser_img_to_shp.add_argument(
+    '--lat',
+    help='Center latitude for the input image',
+    dest='latitude',
+    metavar='-43.2',
+    required=True,
+    type=float
+)
+parser_img_to_shp.add_argument(
+    '--lon',
+    help='Center longitude for the input image',
+    dest='longitude',
+    metavar='-103.8',
+    required=True,
+    type=float
+)
+parser_img_to_shp.add_argument(
+    '-r',
+    '--resolution',
+    help='The resolution of the image in meters per pixel',
+    dest='resolution',
+    metavar='1000',
+    required=True,
+    type=float
+)
+parser_img_to_shp.add_argument(
+    '-o',
+    '--output',
+    help='The name of the output shapefiles. Note that this will create several files with the same name but different extensions.',
+    dest='outputFile',
+    metavar='shoreline',
+    required=True
+)
+parser_img_to_shp.set_defaults(func=img_to_shp)
 
 args = parser.parse_args()
 args.func(args)
