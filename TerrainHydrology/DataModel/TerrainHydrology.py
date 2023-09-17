@@ -1,4 +1,4 @@
-from .Math import Point
+from ..Utilities.Math import Point
 from .HydrologyNetwork import HydrologyNetwork
 from .TerrainHoneycomb import TerrainHoneycomb
 
