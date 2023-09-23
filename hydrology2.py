@@ -44,6 +44,7 @@ def img_to_shp(args: argparse.Namespace) -> None:
     BitmapToShapefile.img_to_shp(args.inputImage, args.latitude, args.longitude, args.resolution, args.outputFile)
 
 def test(test: argparse.Namespace) -> None:
+    # TODO: This isn't the right way to do this. We'll have to refactor this later
     unittest.main(module='TerrainHydrology.TestSuite.tests', argv=sys.argv[:1])
 
 parser = argparse.ArgumentParser(
