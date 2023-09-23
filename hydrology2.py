@@ -1,6 +1,8 @@
 #!/bin/python3
 
 import argparse
+import unittest
+import sys
 
 from TerrainHydrology.ModelIO import Export, Render
 from TerrainHydrology.Utilities import BitmapToShapefile
@@ -40,6 +42,10 @@ def render(args: argparse.Namespace) -> None:
 
 def img_to_shp(args: argparse.Namespace) -> None:
     BitmapToShapefile.img_to_shp(args.inputImage, args.latitude, args.longitude, args.resolution, args.outputFile)
+
+def test(test: argparse.Namespace) -> None:
+    # TODO: This isn't the right way to do this. We'll have to refactor this later
+    unittest.main(module='TerrainHydrology.TestSuite.tests', argv=sys.argv[:1])
 
 parser = argparse.ArgumentParser(
     description='Terrain system based on Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
@@ -324,6 +330,9 @@ parser_img_to_shp.add_argument(
     required=True
 )
 parser_img_to_shp.set_defaults(func=img_to_shp)
+
+parser_test = subparsers.add_parser('test', help='test help')
+parser_test.set_defaults(func=test)
 
 args = parser.parse_args()
 args.func(args)
