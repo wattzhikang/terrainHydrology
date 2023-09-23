@@ -24,7 +24,7 @@ from TerrainHydrology.DataModel.RiverInterpolationFunctions import computeRivers
 from TerrainHydrology.DataModel.TerrainHoneycombFunctions import orderVertices, orderEdges, orderCreatedEdges, hasRiver, processRidge, getVertex0, getVertex1, ridgesToPoints, findIntersectingShoreSegment, initializeTerrainHoneycomb
 from TerrainHydrology.ModelIO.SaveFile import createDB
 
-from .testcodegenerator import getPredefinedObjects0
+from TerrainHydrology.TestSuite.testcodegenerator import getPredefinedObjects0
 
 class ShapefileShoreTests(unittest.TestCase):
     def setUp(self):

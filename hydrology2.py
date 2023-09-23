@@ -2,12 +2,11 @@
 
 import argparse
 import unittest
+import sys
 
 from TerrainHydrology.ModelIO import Export, Render
 from TerrainHydrology.Utilities import BitmapToShapefile
 from TerrainHydrology.GeneratorClassic import GeneratorClassic
-
-from TerrainHydrology.TestSuite.tests import *
 
 def generateClassic(args: argparse.Namespace) -> None:
     GeneratorClassic.generateClassic(
@@ -43,6 +42,9 @@ def render(args: argparse.Namespace) -> None:
 
 def img_to_shp(args: argparse.Namespace) -> None:
     BitmapToShapefile.img_to_shp(args.inputImage, args.latitude, args.longitude, args.resolution, args.outputFile)
+
+def test(test: argparse.Namespace) -> None:
+    unittest.main(module='TerrainHydrology.TestSuite.tests', argv=sys.argv[:1])
 
 parser = argparse.ArgumentParser(
     description='Terrain system based on Genevaux et al., "Terrain Generation Using Procedural Models Based on Hydrology", ACM Transactions on Graphics, 2013'
@@ -329,7 +331,7 @@ parser_img_to_shp.add_argument(
 parser_img_to_shp.set_defaults(func=img_to_shp)
 
 parser_test = subparsers.add_parser('test', help='test help')
-parser_test.set_defaults(func=lambda _: unittest.main())
+parser_test.set_defaults(func=test)
 
 args = parser.parse_args()
 args.func(args)
