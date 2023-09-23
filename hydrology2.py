@@ -32,6 +32,8 @@ def export(args: argparse.Namespace) -> None:
         Export.writeDownstreamEdgeShapefile(args.inputFile, args.latitude, args.longitude, args.downstreamEdgeOutput)
     if args.riverOutput is not None:
         Export.writeRiverShapefile(args.inputFile, args.latitude, args.longitude, args.riverOutput)
+    if args.ridgePrimitiveOutput is not None:
+        Export.writeRidgePrimitiveShapefile(args.inputFile, args.latitude, args.longitude, args.ridgePrimitiveOutput)
 
 def render(args: argparse.Namespace) -> None:
     Render.renderDEM(args.inputFile, args.latitude, args.longitude, args.outputResolution, args.num_procs, args.outputDir, args.extremeMemory)
@@ -188,6 +190,15 @@ parser_export.add_argument(
     help='Name for the shapefile that will contain the cell ridges. (This does not include the shoreline, nor edges that rivers flow through.) Note that shapefiles are composed of multiple files. Thus, if the name of the output is "nodes", the files "nodes.shp", "nodes.shx", "nodes.dbf", "nodes.prj" will be created.',
     type=str,
     dest='edgeOutput',
+    required=False
+)
+parser_export.add_argument(
+    '--output-ridge-primitive',
+    '-oq',
+    metavar='ridgePrimitives',
+    help='Name for the shapefile that will contain the ridge primitives. Note that shapefiles are composed of multiple files. Thus, if the name of the output is "nodes", the files "nodes.shp", "nodes.shx", "nodes.dbf", "nodes.prj" will be created.',
+    type=str,
+    dest='ridgePrimitiveOutput',
     required=False
 )
 parser_export.add_argument(
