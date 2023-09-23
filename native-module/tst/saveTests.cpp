@@ -23,7 +23,7 @@ namespace
         // initialize database
         // open the file db-init.sql
         // read its contents into a single string and execute it
-        FILE *initFile = fopen("../db-init.sql", "r");
+        FILE *initFile = fopen("../TerrainHydrology/ModelIO/db-init.sql", "r");
         // check for error in opening file
         if (initFile == NULL)
         {
@@ -92,7 +92,7 @@ namespace
         // initialize database
         // open the file db-init.sql
         // read its contents into a single string and execute it
-        FILE *initFile = fopen("../db-init.sql", "r");
+        FILE *initFile = fopen("../TerrainHydrology/ModelIO/db-init.sql", "r");
         // check for error in opening file
         if (initFile == NULL)
         {
@@ -170,7 +170,7 @@ namespace
         // initialize database
         // open the file db-init.sql
         // read its contents into a single string and execute it
-        FILE *initFile = fopen("../db-init.sql", "r");
+        FILE *initFile = fopen("../TerrainHydrology/ModelIO/db-init.sql", "r");
         // check for error in opening file
         if (initFile == NULL)
         {

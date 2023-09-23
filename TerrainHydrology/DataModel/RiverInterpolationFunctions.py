@@ -2,8 +2,8 @@ import numpy as np
 from scipy import interpolate
 from shapely.geometry import LineString
 
-from DataModel.HydrologyNetwork import HydroPrimitive, HydrologyNetwork
-from DataModel.TerrainHoneycomb import TerrainHoneycomb
+from TerrainHydrology.DataModel.HydrologyNetwork import HydroPrimitive, HydrologyNetwork
+from TerrainHydrology.DataModel.TerrainHoneycomb import TerrainHoneycomb
 
 def computeRivers(node: HydroPrimitive, hydrology: HydrologyNetwork, cells: TerrainHoneycomb):
     """Computes the path of all the rivers that flow through the node.
