@@ -2,12 +2,12 @@ import random
 import math
 import struct
 
-from Utilities.Math import point_segment_distance
+from TerrainHydrology.Utilities.Math import point_segment_distance
 
 # imports and definitions for type hinting
 import typing
-from DataModel.HydrologyNetwork import HydroPrimitive, HydrologyNetwork
-from DataModel.TerrainHoneycomb import TerrainHoneycomb
+from TerrainHydrology.DataModel.HydrologyNetwork import HydroPrimitive, HydrologyNetwork
+from TerrainHydrology.DataModel.TerrainHoneycomb import TerrainHoneycomb
 
 def selectNode(candidate_nodes: typing.List[HydroPrimitive] , zeta: float) -> HydroPrimitive:
     """Given a list of candidate nodes, this function selects the next node to expand

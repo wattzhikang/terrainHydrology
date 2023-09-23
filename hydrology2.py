@@ -4,6 +4,22 @@ import argparse
 
 from TerrainHydrology.ModelIO import Export, Render
 from TerrainHydrology.Utilities import BitmapToShapefile
+from TerrainHydrology.GeneratorClassic import GeneratorClassic
+
+def generateClassic(args: argparse.Namespace) -> None:
+    GeneratorClassic.generateClassic(
+        args.inputDomain,
+        args.inputTerrain,
+        args.inputRiverSlope,
+        args.resolution,
+        args.numRivers,
+        args.num_procs,
+        args.num_points,
+        args.outputFile,
+        args.latitude,
+        args.longitude,
+        args.accelerate
+    )
 
 def export(args: argparse.Namespace) -> None:
     if args.nodeOutput is not None:
@@ -32,6 +48,94 @@ subparsers = parser.add_subparsers(
     description='valid subcommands',
     help='sub-command help'
 )
+
+parser_generatorClassic = subparsers.add_parser('generate', help='generate help')
+parser_generatorClassic.add_argument(
+    '--lat',
+    help='Center latitude for the project'' projection',
+    dest='latitude',
+    metavar='-43.2',
+    required=True
+)
+parser_generatorClassic.add_argument(
+    '--lon',
+    help='Center longitude for the project'' projection',
+    dest='longitude',
+    metavar='-103.8',
+    required=True
+)
+parser_generatorClassic.add_argument(
+    '-g',
+    '--gamma',
+    help='An outline of the shore. Should be an ESRI shapefile',
+    dest='inputDomain',
+    metavar='gamma.shp',
+    required=True
+)
+parser_generatorClassic.add_argument(
+    '-s',
+    '--river-slope',
+    help='Slope of the rivers (not terrain slope). Values in grayscale.',
+    dest='inputRiverSlope',
+    metavar='rivers.png',
+    required=True
+)
+parser_generatorClassic.add_argument(
+    '-t',
+    '--terrain-slope',
+    help='Slope of the terrain (not river slope). Values in grayscale.',
+    dest='inputTerrain',
+    metavar='terrain.png',
+    required=True
+)
+parser_generatorClassic.add_argument(
+    '-ri',
+    '--input-resolution',
+    help='The spatial resolution of the input images in meters per pixel',
+    dest='resolution',
+    metavar='87.5',
+    required=True
+)
+parser_generatorClassic.add_argument(
+    '-p',
+    '--num-points',
+    help='The (rough) number of terrain primitives for each cell',
+    dest='num_points',
+    metavar='50',
+    required=True
+)
+parser_generatorClassic.add_argument(
+    '--num-rivers',
+    help='The number of drainages along the coast',
+    dest='numRivers',
+    metavar='10',
+    default=10,
+    required=False
+)
+parser_generatorClassic.add_argument(
+    '--accelerate',
+    help='Accelerate Your Life™ using parallel processing with a natively-compiled module',
+    action='store_true',
+    dest='accelerate',
+    required=False
+)
+parser_generatorClassic.add_argument(
+    '--num-procs',
+    help='The number of processes/threads to use for calculating terrain primitives. This should be the number of cores you have on your system.',
+    dest='num_procs',
+    metavar='4',
+    default=4,
+    required=False
+)
+parser_generatorClassic.add_argument(
+    '-o',
+    '--output',
+    help='File that will contain the data model',
+    dest='outputFile',
+    metavar='outputFile',
+    required=True
+)
+parser_generatorClassic.set_defaults(func=generateClassic)
 
 parser_export = subparsers.add_parser('export', help='export help')
 parser_export.add_argument(

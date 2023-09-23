@@ -165,7 +165,10 @@ dmypy.json
 doc-native/html/
 doc-native/latex
 .vscode/
-src/native-module/tst/googletest
+native-module/tst/googletest
+native-module/*.gch
+native-module/bin/gen/*.o
+native-module/bin
 
 # Custom files on my system that I don't want tracked
 

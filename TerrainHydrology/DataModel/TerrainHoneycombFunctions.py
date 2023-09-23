@@ -3,8 +3,8 @@ import typing
 import numpy as np
 from scipy.spatial import Voronoi
 
-from .Math import edgeIntersection, Point
-from .RasterData import RasterData
+from TerrainHydrology.Utilities.Math import edgeIntersection, Point
+from TerrainHydrology.ModelIO.RasterData import RasterData
 from .ShoreModel import ShoreModel
 from .TerrainHoneycomb import TerrainHoneycomb, Q, Edge
 from .HydrologyNetwork import HydrologyNetwork, HydroPrimitive
