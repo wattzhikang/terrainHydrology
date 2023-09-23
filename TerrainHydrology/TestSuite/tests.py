@@ -13,16 +13,16 @@ import os.path
 from typing import Dict, List
 import math
 
-from lib.HydrologyFunctions import HydrologyParameters, isAcceptablePosition, selectNode, coastNormal, getLocalWatershed, getInheritedWatershed, getFlow
-from lib.ShoreModel import ShoreModel
-from lib.HydrologyNetwork import HydrologyNetwork, HydroPrimitive
-from lib.TerrainHoneycomb import TerrainHoneycomb, Q, Edge
-from lib.Terrain import Terrain, T
-from lib.Math import Point, edgeIntersection, segments_intersect_tuple, polygonArea
-from lib.TerrainPrimitiveFunctions import computePrimitiveElevation
-from lib.RiverInterpolationFunctions import computeRivers
-from lib.TerrainHoneycombFunctions import orderVertices, orderEdges, orderCreatedEdges, hasRiver, processRidge, getVertex0, getVertex1, ridgesToPoints, findIntersectingShoreSegment, initializeTerrainHoneycomb
-import lib.SaveFile
+from TerrainHydrology.GeneratorClassic.HydrologyFunctions import HydrologyParameters, isAcceptablePosition, selectNode, coastNormal, getLocalWatershed, getInheritedWatershed, getFlow
+from TerrainHydrology.DataModel.ShoreModel import ShoreModel
+from TerrainHydrology.DataModel.HydrologyNetwork import HydrologyNetwork, HydroPrimitive
+from TerrainHydrology.DataModel.TerrainHoneycomb import TerrainHoneycomb, Q, Edge
+from TerrainHydrology.DataModel.Terrain import Terrain, T
+from TerrainHydrology.Utilities.Math import Point, edgeIntersection, segments_intersect_tuple, polygonArea
+from TerrainHydrology.DataModel.TerrainPrimitiveFunctions import computePrimitiveElevation
+from TerrainHydrology.DataModel.RiverInterpolationFunctions import computeRivers
+from TerrainHydrology.DataModel.TerrainHoneycombFunctions import orderVertices, orderEdges, orderCreatedEdges, hasRiver, processRidge, getVertex0, getVertex1, ridgesToPoints, findIntersectingShoreSegment, initializeTerrainHoneycomb
+from TerrainHydrology.ModelIO.SaveFile import createDB
 
 from .testcodegenerator import getPredefinedObjects0
 
@@ -965,7 +965,7 @@ class SaveFileShoreLoadTests(unittest.TestCase):
     def setUp(self) -> None:
         self.shape = [ [0,-437], [35,-113], [67,-185], [95,-189], [70,-150], [135,-148], [157,44], [33,77], [-140,8], [0,-437] ]
 
-        self.db = lib.SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        self.db = createDB(':memory:', 2000, 2000, 0, 0)
         with self.db:
             self.db.executemany('INSERT INTO Shoreline VALUES (?, MakePoint(?, ?, 347895))', [ (idx, x, y) for idx, (x,y) in enumerate(self.shape) ])
 
@@ -996,7 +996,7 @@ class SaveFileShoreSaveTests(unittest.TestCase):
 
         self.shore = ShoreModel(shpFile=shpBuf, shxFile=shxBuf, dbfFile=dbfBuf)
 
-        self.db = lib.SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        self.db = createDB(':memory:', 2000, 2000, 0, 0)
         self.shore.saveToDB(self.db)
 
     def test_save0(self) -> None:
@@ -1009,7 +1009,7 @@ class SaveFileShoreSaveTests(unittest.TestCase):
 
 class SaveFileHydrologyLoadTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.db = lib.SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        self.db = createDB(':memory:', 2000, 2000, 0, 0)
         with self.db:
             self.db.execute('INSERT INTO RiverNodes VALUES (0, NULL,  0,  0, 30, 32, NULL, MakePoint(0, 0, 347895))')
             self.db.execute('INSERT INTO RiverNodes VALUES (1,    0, 10, 10, 10, 16, NULL, MakePoint(0, 0, 347895))')
@@ -1044,7 +1044,7 @@ class SaveFileHydrologySaveTests(unittest.TestCase):
         node1.flow = 16
         node2.flow = 16
 
-        self.db = lib.SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        self.db = createDB(':memory:', 2000, 2000, 0, 0)
         self.hydrology.saveToDB(self.db)
 
     def test_save0(self) -> None:
@@ -1057,7 +1057,7 @@ class SaveFileHydrologySaveTests(unittest.TestCase):
 
 class SaveFileHoneycombLoadTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.db = lib.SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        self.db = createDB(':memory:', 2000, 2000, 0, 0)
         with self.db:
             self.db.execute('INSERT INTO RiverNodes VALUES (0, NULL,  0,  0, 30, 32, NULL, MakePoint(0, 0, 347895))')
             self.db.execute('INSERT INTO RiverNodes VALUES (1,    0, 10, 10, 10, 16, NULL, MakePoint(1850, 500, 347895))')
@@ -1164,7 +1164,7 @@ class SaveFileHoneycombSaveTests(unittest.TestCase):
 
         cells = initializeTerrainHoneycomb(self.shore, self.hydrology)
 
-        self.db = lib.SaveFile.createDB(':memory:', 2000, 2320.5, 0, 0)
+        self.db = createDB(':memory:', 2000, 2320.5, 0, 0)
         cells.saveToDB(self.db)
 
 
@@ -1179,7 +1179,7 @@ class SaveFileHoneycombSaveTests(unittest.TestCase):
 
 class SaveFileTerrainLoadTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.db = lib.SaveFile.createDB(':memory:', 2000, 2000, 0, 0)
+        self.db = createDB(':memory:', 2000, 2000, 0, 0)
         with self.db:
             self.db.execute('INSERT INTO Ts VALUES (0, 0, 12.3, MakePoint(10.5, 5.10, 347895))')
             self.db.execute('INSERT INTO Ts VALUES (5, 0, 13.2, MakePoint(20.1, 12.6, 347895))')

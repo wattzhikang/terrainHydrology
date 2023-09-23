@@ -1,10 +1,13 @@
 #!/bin/python3
 
 import argparse
+import unittest
 
 from TerrainHydrology.ModelIO import Export, Render
 from TerrainHydrology.Utilities import BitmapToShapefile
 from TerrainHydrology.GeneratorClassic import GeneratorClassic
+
+from TerrainHydrology.TestSuite.tests import *
 
 def generateClassic(args: argparse.Namespace) -> None:
     GeneratorClassic.generateClassic(
@@ -324,6 +327,9 @@ parser_img_to_shp.add_argument(
     required=True
 )
 parser_img_to_shp.set_defaults(func=img_to_shp)
+
+parser_test = subparsers.add_parser('test', help='test help')
+parser_test.set_defaults(func=lambda _: unittest.main())
 
 args = parser.parse_args()
 args.func(args)
