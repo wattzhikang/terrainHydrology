@@ -1,6 +1,6 @@
 # terrainHydrology
 
-This is a terrain generator inspired by 2013 paper "Terrain Generation Using Procedural Models Based on Hydrology".
+This is a terrain generator inspired by 2013 paper "Terrain Generation Using Procedural Models Based on Hydrology". It is developed by Laith Siriani and Zachariah Wat.
 
 ![Example Terrain](example/out/out-color.png)
 
@@ -12,7 +12,11 @@ The approach described in Genevaux et al is an ontogenetic approach that is mean
 
 ## Usage
 
-This project consists of three scripts: `hydrology.py`, `hydrology-render.py`, and `hydrology-visualize.py`. They are all located in the `src/` directory, and the `-h` switch will display basic options for each.
+The workflow for using this program begins with the preparation of inputs. This consists of 2 maps and 1 ESRI shapefile that demarcate the shape of the landmass and the general nature of the terrain.
+
+Then, the terrain is generated. The result of this process is a SQL database that describes the terrain. This database is intended to be read directly. It can be queried directly, but can also be imported into GIS software, such as QGIS, which can not only display the data in maps, but can perform any other kind of GIS data task.
+
+However, this program also includes 2 subcommands that can export this database into other formats, such as ESRI shapefiles and GeoTIFF digital elevation models.
 
 ### `hydrology.py`
 
