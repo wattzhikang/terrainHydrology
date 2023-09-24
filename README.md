@@ -18,32 +18,6 @@ Then, the terrain is generated. The result of this process is a SQL database tha
 
 However, this program also includes 2 subcommands that can export this database into other formats, such as ESRI shapefiles and GeoTIFF digital elevation models.
 
-### `hydrology-visualize.py`
-
-![A portion of the terrain visualized. The edges of the hydrology graph are weighted for flow. Cells are colored according to the cell node's elevation.](example/out/visualize.jpg)
-
-This script will visualize certain components of the data model. This can be useful for debugging or adding new features.
-
-The background can either be an outline of the shore, or the cells can be color coded for the Voronoi cell ID, or color coded for the height of the cell node's elevation.
-
-The terrain primitives can be displayed as well as the interpolated paths of the rivers.
-
-The hydrology network can be visualized. The edges can be weighted according to river flow, if desired.
-
-Switch | Notes
------- | -----
-`-xl`, `--lower-x` | x lower bound
-`-yl`, `--lower-y` | y lower bound
-`-xu`, `--upper-x` | x upper bound
-`-yu`, `--upper-y` | y upper bound
-`--river-heights` | river height cells as background
-`--voronoi-cells` | voronoi cells as background
-`--terrain-primitives` | show terrain primitives
-`--river-paths` | show rivers
-`--hydrology-network` | show hydrology network
-`--hydrology-network-flow` | show hydrology network with
-`-o` | The path+name of the image to write
-
 ### `hydrology-riverout.py`
 
 This script will read the data model and write an ESRI shapefile that shows the paths of the rivers over the terrain.
