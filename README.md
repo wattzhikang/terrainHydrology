@@ -18,29 +18,6 @@ Then, the terrain is generated. The result of this process is a SQL database tha
 
 However, this program also includes 2 subcommands that can export this database into other formats, such as ESRI shapefiles and GeoTIFF digital elevation models.
 
-### `hydrology.py`
-
-This script will generate terrain and stores it in a binary file. This binary file contains the full data model that can be rendered at an arbitrary resolution.
-
-The program requires three images as inputs. They should all be the same resolution.
-
-1. The gamma, or shoreline, should be a black-and-white image (though the actual color model does not matter). Full white `ffffff` represents land, and full black `000000` represents ocean. The program does not currently support inland seas or lakes.
-1. The river slope map is a grayscale image (though the actual color model does not matter). This map indicates the slope of rivers. Lighter values represent steeper slopes, and darker values represent more level slopes.
-1. The terrain slope map is also a grayscale image. It indicates the slope of terrain independent of the rivers.
-
-Switch | Notes
------- | -----
-`-g`, `--gamma` | The gamma, or shoreline
-`-s`, `--river-slope` | The river slope map
-`-t`, `--terrain-slope` | The terrain slope map
-`-ri` | This is the spatial resolution of the input images in meters per pixel.
-`--num-rivers` | This is the number of drainages to create along the coast.
-`p` | This is the approximate number of terrain primitives for each cell.
-`--dry-run` | Only calculate the river network and forget about anything that has to do with ridges. This is useful for designing landscapes, as it can allow for faster feedback
-`--accelerate` | Accelerate Your Life™ with a natively-compiled module that can generate the river network much more quickly. (See "Native module" section below)
-`--num-procs` | The number of processes to use in the calculation of terrain primitive elevations. It is analogous to the `--num-procs` flag in `hydrology-render.py` below.
-`-o`, `--output` | The file that will contain the data model
-
 ### `hydrology-render.py`
 
 This script will render the terrain as a GeoTIFF and a small `.png` image. The file `out-geo.tif` is a GeoTIFF file that can be read by GIS software.
