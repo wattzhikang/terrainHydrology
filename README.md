@@ -18,20 +18,6 @@ Then, the terrain is generated. The result of this process is a SQL database tha
 
 However, this program also includes 2 subcommands that can export this database into other formats, such as ESRI shapefiles and GeoTIFF digital elevation models.
 
-### `hydrology-render.py`
-
-This script will render the terrain as a GeoTIFF and a small `.png` image. The file `out-geo.tif` is a GeoTIFF file that can be read by GIS software.
-
-Switch | Notes
------- | -----
-`-i` | The file that contains the data model you wish to render
-`-ro` | This is the number of pixels or samples on each side of the output raster
-`--lat` | This is the center latitude of the output GeoTIFF
-`--lon` | This is the center longitude of the output GeoTIFF
-`-o` | The directory in which to dump the output files
-
-Optionally, `--num-procs` can be used to specify the number of processes to use in rendering the output raster. This will take advantage of the parallel processing capabilities of your CPU, and the number specified here should be equal to the number of cores in your CPU(s). Numbers larger than this obviously will not help, but numbers less than this may reduce performance.
-
 ### `hydrology-visualize.py`
 
 ![A portion of the terrain visualized. The edges of the hydrology graph are weighted for flow. Cells are colored according to the cell node's elevation.](example/out/visualize.jpg)
