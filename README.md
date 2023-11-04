@@ -32,10 +32,6 @@ Export ridge primitives as an ESRI shapefile:
 /hydrology2.py export --input example-out/data --lat 0.0 --lon 0.0 --output-ridge-primitive example-out/ridgeprimitives
 ```
 
-## Native module
-
-There are two native modules that can greatly accelerate the process of generating terrain. One module is designed to generate the river network. The other is designed to compute the elevations of terrain primitives. Both modules use OpenMP to perform their computations in parallel, and both must be compiled. They were developed on Fedora and have been tested on Ubuntu. In the `src` directory, use `make buildRivers` and `make terrainPrimitives` to build the module, and use the `--accelerate` flag to use them.
-
 ## Citations
 
 ### Poisson.py
