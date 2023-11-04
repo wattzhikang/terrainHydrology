@@ -9,25 +9,15 @@ Welcome to terrainHydrology's documentation!
 
 These pages document the data structures used in the terrainHydrology project.
 
-.. note::
-   All measurements in the API are in meters. Pixels should be entirely abstracted behind the API
-
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
 
-   ./terrain-hydrology
-   ./raster-data
-   ./shore-model
-   ./hydrology-network
-   ./hydrology-functions
-   ./river-interpolation-functions
-   ./terrain-honeycomb
-   ./terrainhoneycomb-functions
-   ./terrain
-   ./terrainprimitive-functions
-   ./math
-   ./save-file
-   ./tests
+   TerrainHydrology.DataModel
+   TerrainHydrology.GeneratorClassic
+   TerrainHydrology.ModelIO
+   TerrainHydrology.TestSuite
+   TerrainHydrology.Utilities
+
 
 Indices and tables
 ==================

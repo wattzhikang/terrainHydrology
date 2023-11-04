@@ -2,6 +2,6 @@
 TerrainHoneycomb
 ****************
 
-.. autoclass:: lib.TerrainHoneycomb.TerrainHoneycomb
+.. autoclass:: TerrainHydrology.DataModel.TerrainHoneycomb.TerrainHoneycomb
     :members:
     :undoc-members:

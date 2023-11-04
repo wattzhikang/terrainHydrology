@@ -2,8 +2,9 @@
 HydrologyNetwork
 ****************
 
-.. autoclass:: lib.HydrologyNetwork.HydrologyNetwork
+.. autoclass:: TerrainHydrology.DataModel.HydrologyNetwork.HydrologyNetwork
     :members:
     :special-members:
     :exclude-members: __dict__, __init__, __module__, __weakref__
     :undoc-members:
+    :show-inheritance:
