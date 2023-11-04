@@ -2,8 +2,6 @@
 
 This is a terrain generator inspired by 2013 paper "Terrain Generation Using Procedural Models Based on Hydrology". It is developed by Laith Siriani and Zachariah Wat.
 
-![Example Terrain](example/out/out-color.png)
-
 ## About
 
 Most ontogenetic approaches to procedural terrain (Perlin noise, midpoint displacement, etc) produce results that, although generally better than man-made maps, are nonetheless unnatural. Real terrain contains very few local minima, and is not evenly fractal at all scales. Teleological algorithms can help, but may not be performant, especially when simulating small-scale processes over large maps.
