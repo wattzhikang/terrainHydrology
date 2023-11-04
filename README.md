@@ -36,47 +36,7 @@ Export ridge primitives as an ESRI shapefile:
 
 There are two native modules that can greatly accelerate the process of generating terrain. One module is designed to generate the river network. The other is designed to compute the elevations of terrain primitives. Both modules use OpenMP to perform their computations in parallel, and both must be compiled. They were developed on Fedora and have been tested on Ubuntu. In the `src` directory, use `make buildRivers` and `make terrainPrimitives` to build the module, and use the `--accelerate` flag to use them.
 
-### Dependencies for the native module
-
-#### Libraries
-
-To compile the module, you will need the OpenCV library and the necessary header files. On Ubuntu (and hopefully other Debian-based systems), you can use
-
-> `apt install libopencv-dev`
-> `apt install libgeos-dev`
-
-On Fedora and RPM-based distributions, these commands should suffice
-
-> `dnf install opencv-devel`
-> `dnf install geos-devel`
-
-You will also need OpenMP. It seems to come with Ubuntu and Fedora, but it's also widely available in package repositories.
-
-#### Google Test
-
-To build the test binary, you will need the Google Test repository in the `src/tst` directory. Use `git clone` to clone the `googletest` repository into `src/tst` (the repository is hosted on GitHub).
-
-### Documentation for the native module
-
-Documentation for the native module is powered by Doxygen. To generate the documentation, go to the `doc-native` directory and run
-
-> `doxygen`
-
-## General dependencies and citations
-
-### Standard repositories
-
-These Python dependencies should be available through most package managers.
-
-* Scipy
-* Matplotlib
-* OpenCV
-* Networkx
-* Shapely
-* tqdm
-* Rasterio
-
-NOTE: I had trouble getting Scipy to work on a fresh Ubuntu install. I fixed it by uninstalling it with `apt` and reinstalling it with `pip`.
+## Citations
 
 ### Poisson.py
 
