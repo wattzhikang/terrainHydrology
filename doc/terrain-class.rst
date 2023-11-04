@@ -2,6 +2,6 @@
 Terrain
 *******
 
-.. autoclass:: lib.Terrain.Terrain
+.. autoclass:: TerrainHydrology.DataModel.Terrain.Terrain
     :members:
     :undoc-members:

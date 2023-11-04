@@ -1,6 +1,6 @@
 # terrainHydrology
 
-This is a terrain generator inspired by 2013 paper "Terrain Generation Using Procedural Models Based on Hydrology".
+This is a terrain generator inspired by 2013 paper "Terrain Generation Using Procedural Models Based on Hydrology". It is developed by Laith Siriani and Zachariah Wat.
 
 ![Example Terrain](example/out/out-color.png)
 
@@ -12,96 +12,11 @@ The approach described in Genevaux et al is an ontogenetic approach that is mean
 
 ## Usage
 
-This project consists of three scripts: `hydrology.py`, `hydrology-render.py`, and `hydrology-visualize.py`. They are all located in the `src/` directory, and the `-h` switch will display basic options for each.
+The workflow for using this program begins with the preparation of inputs. This consists of 2 maps and 1 ESRI shapefile that demarcate the shape of the landmass and the general nature of the terrain.
 
-### `hydrology.py`
+Then, the terrain is generated. The result of this process is a SQL database that describes the terrain. This database is intended to be read directly. It can be queried directly, but can also be imported into GIS software, such as QGIS, which can not only display the data in maps, but can perform any other kind of GIS data task.
 
-This script will generate terrain and stores it in a binary file. This binary file contains the full data model that can be rendered at an arbitrary resolution.
-
-The program requires three images as inputs. They should all be the same resolution.
-
-1. The gamma, or shoreline, should be a black-and-white image (though the actual color model does not matter). Full white `ffffff` represents land, and full black `000000` represents ocean. The program does not currently support inland seas or lakes.
-1. The river slope map is a grayscale image (though the actual color model does not matter). This map indicates the slope of rivers. Lighter values represent steeper slopes, and darker values represent more level slopes.
-1. The terrain slope map is also a grayscale image. It indicates the slope of terrain independent of the rivers.
-
-Switch | Notes
------- | -----
-`-g`, `--gamma` | The gamma, or shoreline
-`-s`, `--river-slope` | The river slope map
-`-t`, `--terrain-slope` | The terrain slope map
-`-ri` | This is the spatial resolution of the input images in meters per pixel.
-`--num-rivers` | This is the number of drainages to create along the coast.
-`p` | This is the approximate number of terrain primitives for each cell.
-`--dry-run` | Only calculate the river network and forget about anything that has to do with ridges. This is useful for designing landscapes, as it can allow for faster feedback
-`--accelerate` | Accelerate Your Life™ with a natively-compiled module that can generate the river network much more quickly. (See "Native module" section below)
-`--num-procs` | The number of processes to use in the calculation of terrain primitive elevations. It is analogous to the `--num-procs` flag in `hydrology-render.py` below.
-`-o`, `--output` | The file that will contain the data model
-
-### `hydrology-render.py`
-
-This script will render the terrain as a GeoTIFF and a small `.png` image. The file `out-geo.tif` is a GeoTIFF file that can be read by GIS software.
-
-Switch | Notes
------- | -----
-`-i` | The file that contains the data model you wish to render
-`-ro` | This is the number of pixels or samples on each side of the output raster
-`--lat` | This is the center latitude of the output GeoTIFF
-`--lon` | This is the center longitude of the output GeoTIFF
-`-o` | The directory in which to dump the output files
-
-Optionally, `--num-procs` can be used to specify the number of processes to use in rendering the output raster. This will take advantage of the parallel processing capabilities of your CPU, and the number specified here should be equal to the number of cores in your CPU(s). Numbers larger than this obviously will not help, but numbers less than this may reduce performance.
-
-### `hydrology-visualize.py`
-
-![A portion of the terrain visualized. The edges of the hydrology graph are weighted for flow. Cells are colored according to the cell node's elevation.](example/out/visualize.jpg)
-
-This script will visualize certain components of the data model. This can be useful for debugging or adding new features.
-
-The background can either be an outline of the shore, or the cells can be color coded for the Voronoi cell ID, or color coded for the height of the cell node's elevation.
-
-The terrain primitives can be displayed as well as the interpolated paths of the rivers.
-
-The hydrology network can be visualized. The edges can be weighted according to river flow, if desired.
-
-Switch | Notes
------- | -----
-`-xl`, `--lower-x` | x lower bound
-`-yl`, `--lower-y` | y lower bound
-`-xu`, `--upper-x` | x upper bound
-`-yu`, `--upper-y` | y upper bound
-`--river-heights` | river height cells as background
-`--voronoi-cells` | voronoi cells as background
-`--terrain-primitives` | show terrain primitives
-`--river-paths` | show rivers
-`--hydrology-network` | show hydrology network
-`--hydrology-network-flow` | show hydrology network with
-`-o` | The path+name of the image to write
-
-### `hydrology-riverout.py`
-
-This script will read the data model and write an ESRI shapefile that shows the paths of the rivers over the terrain.
-
-Switch | Notes
------- | -----
-`-i` | The file that contains the data model you wish to interpret
-`--lat` | This is the center latitude of the output shapefile
-`--lon` | This is the center longitude of the output shapefile
-`-o` | The path and name of the output shapefile
-
-Note that an ESRI shapefile actually consists of multiple files. For example, if you specify the name `example`, this script will write the files `example.shp`, `example.shx`, `example.dbf`, and `example.prj`. These files should be kept together.
-
-### `hydrology-nodeout.py`
-
-This script will read the data model and write an ESRI shapefile that depicts all the nodes in the hydrology network, along with their associated data.
-
-Switch | Notes
------- | -----
-`-i` | The file that contains the data model you wish to interpret
-`--lat` | This is the center latitude of the output shapefile
-`--lon` | This is the center longitude of the output shapefile
-`-o` | The path and name of the output shapefile
-
-Note that an ESRI shapefile actually consists of multiple files. For example, if you specify the name `example`, this script will write the files `example.shp`, `example.shx`, `example.dbf`, and `example.prj`. These files should be kept together.
+However, this program also includes 2 subcommands that can export this database into other formats, such as ESRI shapefiles and GeoTIFF digital elevation models.
 
 ### Example
 

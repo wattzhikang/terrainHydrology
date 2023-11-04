@@ -1,7 +1,7 @@
-**
+*
 Q
-**
+*
 
-.. autoclass:: lib.TerrainHoneycomb.Q
+.. autoclass:: TerrainHydrology.DataModel.TerrainHoneycomb.Q
     :members:
     :undoc-members:

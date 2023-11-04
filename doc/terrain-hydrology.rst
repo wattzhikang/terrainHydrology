@@ -5,4 +5,4 @@ TerrainHydrology
 .. toctree::
     :maxdepth: 2
 
-    ./terrain-hydrology-class
+    ./terrain-hydrology-class.rst
