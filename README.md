@@ -20,33 +20,17 @@ However, this program also includes 2 subcommands that can export this database 
 
 ### Example
 
-```
-src/hydrology.py -g example/in/gamma.png -s example/in/riverslope.png -t example/in/terrainslope.png -ri 100 -p 50 -o example/out/data
-```
+Generate a terrain:
 
 ```
-src/hydrology-render.py -i example/out/data --lat 43.2 --lon -103.8 -ro 500 -o example/out/
+./hydrology2.py generate --lat 0.0 --lon 0.0 -g example/coastline.shp -s example/riverslope.png -t example/terrainslope.png -ri 93.6 -p 25 --accelerate -o example-out/data
 ```
 
+Export ridge primitives as an ESRI shapefile:
+
 ```
-src/hydrology-visualize.py -i example/out/data -g example/in/gamma.png -xl 60000 -xu 100000 -yl 60000 -yu 120000 --river-heights --hydrology-network-flow -o example/out/visualize.jpg
+/hydrology2.py export --input example-out/data --lat 0.0 --lon 0.0 --output-ridge-primitive example-out/ridgeprimitives
 ```
-
-## Documentation
-
-Documentation for developers and "power users" can be found in the `doc` directory. Documentation is powered by Sphinx.
-
-To generate the documentation, install Sphinx and run
-
-> make html
-
-or
-
-> make pdf
-
-For HTML documentation, you will need to install the readthedocs.org theme.
-
-To generate PDF documentation, you will need the LaTeX toolchain.
 
 ## Native module
 
